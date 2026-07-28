@@ -42,7 +42,7 @@ export default function HeroPanel() {
 
           <p className="text-base xl:text-lg text-text-secondary/80 leading-relaxed max-w-md animate-fade-in-up-delay-3">
             Connect with verified professionals for plumbing, electrical,
-            cleaning, and 50+ home services — all in one place.
+            cleaning, and home services - all in one place.
           </p>
         </div>
 
@@ -52,15 +52,3 @@ export default function HeroPanel() {
   );
 }
 
-function StatItem({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="space-y-0.5">
-      <div className="text-lg xl:text-xl font-heading font-bold text-gold-light">
-        {value}
-      </div>
-      <div className="text-[11px] font-medium text-text-muted tracking-wide uppercase">
-        {label}
-      </div>
-    </div>
-  );
-}

@@ -80,23 +80,6 @@ body {
   }
 }
 
-@keyframes pulse-soft {
-  0%, 100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
 
 @keyframes ken-burns {
   0% {
