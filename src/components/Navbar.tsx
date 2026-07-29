@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import Image from "next/image";
 
 /* ── Role Badge Component ────────────────────────────────────────── */
 function RoleBadge({ role }: { role: string }) {
@@ -180,36 +181,29 @@ export default function Navbar() {
 
   // Render navigation links dynamically by role
   const renderNavLinks = () => {
-    const common = (
-      <>
-        <NavLink href="/" label="Home" active={pathname === "/"} />
-        <NavLink
-          href="/about"
-          label="About Us"
-          active={pathname === "/about"}
-        />
-      </>
-    );
-
     if (role === "CUSTOMER") {
       return (
         <>
-          {common}
           <NavLink
-            href="/book"
+            href="/customer"
+            label="Home"
+            active={pathname === "/customer"}
+          />
+          <NavLink
+            href="/about"
+            label="About Us"
+            active={pathname === "/about"}
+          />
+          <NavLink
+            href="/customer/book"
             label="Book Service"
-            active={pathname.startsWith("/book")}
+            active={pathname.startsWith("/customer/book")}
             gold
           />
           <NavLink
-            href="/services"
+            href="/customer/services"
             label="My Services"
-            active={pathname.startsWith("/services")}
-          />
-          <NavLink
-            href="/dashboard"
-            label="Dashboard"
-            active={pathname === "/dashboard"}
+            active={pathname.startsWith("/customer/services")}
           />
         </>
       );
@@ -218,15 +212,24 @@ export default function Navbar() {
     if (role === "TECHNICIAN") {
       return (
         <>
-          {common}
           <NavLink
-            href="/jobs"
+            href="/technician"
+            label="Home"
+            active={pathname === "/technician"}
+          />
+          <NavLink
+            href="/about"
+            label="About Us"
+            active={pathname === "/about"}
+          />
+          <NavLink
+            href="/technician/jobs"
             label="Active Jobs"
-            active={pathname.startsWith("/jobs")}
+            active={pathname.startsWith("/technician/jobs")}
             gold
           />
           <NavLink
-            href="/schedule"
+            href="/technician/schedule"
             label="Schedule"
             active={pathname.startsWith("/schedule")}
           />
@@ -247,7 +250,16 @@ export default function Navbar() {
     if (role === "COORDINATOR" || role === "ADMIN") {
       return (
         <>
-          {common}
+          <NavLink
+            href="/coordinator"
+            label="Home"
+            active={pathname === "/coordinator"}
+          />
+          <NavLink
+            href="/about"
+            label="About Us"
+            active={pathname === "/about"}
+          />
           <NavLink
             href="/dashboard"
             label="Dashboard"
@@ -257,31 +269,44 @@ export default function Navbar() {
       );
     }
 
-    return common;
+    return (
+      <>
+        <NavLink href="/" label="Home" active={pathname === "/"} />
+        <NavLink
+          href="/about"
+          label="About Us"
+          active={pathname === "/about"}
+        />
+      </>
+    );
   };
 
   return (
     <nav
-      className={`sticky top-0 z-50 w-full border-b border-[rgba(255,255,255,0.06)] px-4 sm:px-8 py-3.5 transition-all duration-300 ${scrolled
-        ? "bg-[#0A0B10]/95 shadow-2xl shadow-black/40"
-        : "bg-[#0A0B10]/80"
-        } backdrop-blur-xl`}
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled
+        ? "bg-[#0A0B10]/40 border-b border-[rgba(255,255,255,0.06)] backdrop-blur-md shadow-lg shadow-black/20"
+        : "bg-transparent border-b border-transparent"
+        } px-4 sm:px-8 py-3.5`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between relative">
         {/* ================= LEFT: BRAND LOGO ================= */}
         <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#C8A55E] to-[#A08844] flex items-center justify-center font-bold text-base text-[#08090D] shadow-lg shadow-[#C8A55E]/15 font-outfit group-hover:scale-105 transition-transform duration-200">
-              F
-            </div>
-            <span className="font-outfit font-bold text-xl text-[#ECEDF0] tracking-tight group-hover:text-[#E4D5A8] transition-colors hidden sm:block">
-              Field<span className="text-[#C8A55E]">Flow</span>
-            </span>
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 group flex-shrink-0"
+          >
+            <Image
+              src="/logo2.png"
+              alt="FixNest Logo"
+              width={150}
+              height={60}
+              className="object-contain"
+            />
           </Link>
         </div>
 
         {/* ================= CENTER: NAVIGATION LABELS ================= */}
-        <div className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+        <div className="hidden md:flex items-center gap-8">
           {isLoggedIn ? (
             renderNavLinks()
           ) : (
@@ -403,8 +428,14 @@ export default function Navbar() {
 
                     {/* Detailed User Information List */}
                     <div className="px-5 py-4 space-y-3.5 border-b border-[rgba(255,255,255,0.06)]">
-                      <InfoRow label="Full Name" value={user?.name || "Not set"} />
-                      <InfoRow label="Email Address" value={user?.email || "—"} />
+                      <InfoRow
+                        label="Full Name"
+                        value={user?.name || "Not set"}
+                      />
+                      <InfoRow
+                        label="Email Address"
+                        value={user?.email || "—"}
+                      />
                       <InfoRow
                         label="Phone Number"
                         value={user?.phone || user?.phoneNumber || "Not set"}
