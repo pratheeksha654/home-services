@@ -17,13 +17,14 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  avatar?: string;
   avatarUrl?: string;
   // Onboarding fields
   ageCategory?: string;
   gender?: string;
   address?: UserAddress;
   // Role & status
-  role?: UserRole;
+  role?: UserRole | string;
   onboardingCompleted?: boolean;
 }
 
@@ -40,7 +41,8 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (data: SignupData) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  getToken: () => string | null;
   setUserProfile: (data: ProfileData) => void;
   setRole: (role: UserRole) => void;
   completeOnboarding: () => void;
@@ -56,33 +58,13 @@ export interface SignupData {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-/* ── Storage Keys ───────────────────────────────────────────────── */
-const STORAGE_USERS_KEY = "fieldflow_users";
-const STORAGE_SESSION_KEY = "fieldflow_session";
-
 /* ── Helpers ────────────────────────────────────────────────────── */
-type StoredUser = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-};
+const STORAGE_SESSION_KEY = "homefixpro_session";
+const STORAGE_TOKEN_KEY = "homefixpro_token";
 
-function getStoredUsers(): StoredUser[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_USERS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
-function saveUsers(users: StoredUser[]) {
-  localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-}
-
-function getSession(): User | null {
+function getStoredSession(): User | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(STORAGE_SESSION_KEY);
@@ -92,16 +74,21 @@ function getSession(): User | null {
   }
 }
 
-function saveSession(user: User) {
+function saveSession(user: User, token: string) {
   localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(user));
+  if (token) {
+    localStorage.setItem(STORAGE_TOKEN_KEY, token);
+  }
 }
 
 function clearSession() {
   localStorage.removeItem(STORAGE_SESSION_KEY);
+  localStorage.removeItem(STORAGE_TOKEN_KEY);
 }
 
-function generateId() {
-  return `user_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(STORAGE_TOKEN_KEY);
 }
 
 /* ── Provider ───────────────────────────────────────────────────── */
@@ -112,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Hydrate session on mount
   useEffect(() => {
-    const session = getSession();
+    const session = getStoredSession();
     if (session) setUser(session);
     setIsLoading(false);
   }, []);
@@ -125,41 +112,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: "Please fill in all fields." };
       }
 
-      const users = getStoredUsers();
-      const found = users.find((u) => u.email === trimmedEmail && u.password === password);
+      try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: trimmedEmail, password }),
+        });
 
-      if (!found) {
-        return { success: false, error: "Invalid email or password." };
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          return { success: false, error: data.message || "Invalid email or password." };
+        }
+
+        const sessionUser: User = data.data.user;
+        const token = data.data.access_token;
+        
+        setUser(sessionUser);
+        saveSession(sessionUser, token);
+
+        // Route based on onboarding status
+        if (!sessionUser.onboardingCompleted) {
+          router.push("/onboarding/details");
+        } else {
+          router.push("/dashboard");
+        }
+        return { success: true };
+      } catch (error) {
+        console.error("Login error:", error);
+        return { success: false, error: "Network error. Please try again." };
       }
-
-      // Restore full session (may have profile/role persisted)
-      const existing = getSession();
-      const sessionUser: User = {
-        id: found.id,
-        name: found.name,
-        email: found.email,
-        phone: found.phone,
-        // Restore persisted role/onboarding info if email matches
-        ...(existing?.email === found.email
-          ? {
-              role: existing.role,
-              onboardingCompleted: existing.onboardingCompleted,
-              ageCategory: existing.ageCategory,
-              gender: existing.gender,
-              address: existing.address,
-            }
-          : {}),
-      };
-      setUser(sessionUser);
-      saveSession(sessionUser);
-
-      // Route based on onboarding status
-      if (!sessionUser.onboardingCompleted) {
-        router.push("/onboarding/details");
-      } else {
-        router.push("/dashboard");
-      }
-      return { success: true };
     },
     [router],
   );
@@ -186,35 +170,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: "Passwords do not match." };
       }
 
-      const users = getStoredUsers();
-      if (users.some((u) => u.email === trimmedEmail)) {
-        return { success: false, error: "An account with this email already exists." };
+      try {
+        const response = await fetch(`${API_URL}/auth/signup`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name: name.trim(), email: trimmedEmail, phone: phone.trim(), password }),
+        });
+
+        const resData = await response.json();
+
+        if (!response.ok || !resData.success) {
+          return { success: false, error: resData.message || "Failed to create account." };
+        }
+
+        const sessionUser: User = resData.data.user;
+        const token = resData.data.access_token;
+        
+        setUser(sessionUser);
+        saveSession(sessionUser, token);
+
+        if (!sessionUser.onboardingCompleted) {
+          router.push("/onboarding/details");
+        } else {
+          router.push("/dashboard");
+        }
+        return { success: true };
+      } catch (error) {
+        console.error("Signup error:", error);
+        return { success: false, error: "Network error. Please try again." };
       }
-
-      const id = generateId();
-      const newUser: StoredUser = { id, name: name.trim(), email: trimmedEmail, phone: phone.trim(), password };
-      users.push(newUser);
-      saveUsers(users);
-
-      const sessionUser: User = {
-        id,
-        name: newUser.name,
-        email: newUser.email,
-        phone: newUser.phone,
-        onboardingCompleted: false,
-      };
-      setUser(sessionUser);
-      saveSession(sessionUser);
-      router.push("/onboarding/details");
-      return { success: true };
     },
     [router],
   );
 
-  const logout = useCallback(() => {
-    setUser(null);
-    clearSession();
-    router.push("/login");
+  const logout = useCallback(async () => {
+    try {
+      const token = getToken();
+      if (token) {
+        await fetch(`${API_URL}/auth/logout`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setUser(null);
+      clearSession();
+      router.push("/login");
+    }
   }, [router]);
 
   /** Save profile details from Step 1 onboarding */
@@ -229,7 +238,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         gender: data.gender,
         address: data.address,
       };
-      saveSession(updated);
+      saveSession(updated, getToken() || "");
       return updated;
     });
   }, []);
@@ -239,7 +248,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => {
       if (!prev) return prev;
       const updated: User = { ...prev, role };
-      saveSession(updated);
+      saveSession(updated, getToken() || "");
       return updated;
     });
   }, []);
@@ -249,14 +258,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser((prev) => {
       if (!prev) return prev;
       const updated: User = { ...prev, onboardingCompleted: true };
-      saveSession(updated);
+      saveSession(updated, getToken() || "");
       return updated;
     });
   }, []);
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, login, signup, logout, setUserProfile, setRole, completeOnboarding }}
+      value={{
+        user,
+        isLoading,
+        login,
+        signup,
+        logout,
+        getToken,
+        setUserProfile,
+        setRole,
+        completeOnboarding,
+      }}
     >
       {children}
     </AuthContext.Provider>
