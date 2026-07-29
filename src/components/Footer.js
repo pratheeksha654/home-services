@@ -1,3 +1,5 @@
+"use client";
+
 import {
   FaFacebookF,
   FaInstagram,
@@ -49,13 +51,12 @@ export default function Footer() {
             </h2>
 
             <ul className="space-y-4 text-[#9CA0AE]">
-              <li className="hover:text-[#C8A55E] cursor-pointer">Home</li>
-
-              <li className="hover:text-[#C8A55E] cursor-pointer">About</li>
-              <li className="hover:text-[#C8A55E] cursor-pointer">
+              <li className="hover:text-[#C8A55E] transition-colors duration-200"><Link href="/customer">Home</Link></li>
+              <li className="hover:text-[#C8A55E] transition-colors duration-200"><Link href="/about">About</Link></li>
+              <li className="hover:text-[#C8A55E] transition-colors duration-200">
                 Privacy Policy
               </li>
-              <li className="hover:text-[#C8A55E] cursor-pointer"><Link href="/terms">Terms and Conditions</Link></li>
+              <li className="hover:text-[#C8A55E] transition-colors duration-200"><Link href="/terms">Terms and Conditions</Link></li>
             </ul>
           </div>
 

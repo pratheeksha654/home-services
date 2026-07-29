@@ -1,6 +1,7 @@
 import Hero from "./Hero";
 import QuickActions from "./QuickActions";
 import PopularServices from "./ServicesSection";
+import Footer from "@/components/Footer";
 
 export default function CustomerHome() {
   return (
@@ -8,6 +9,7 @@ export default function CustomerHome() {
       <Hero />
       <QuickActions />
       <PopularServices />
+      <Footer />
     </>
   );
 }

@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sessionUser: User = { id: found.id, name: found.name, email: found.email };
       setUser(sessionUser);
       saveSession(sessionUser);
-      router.push("/dashboard");
+      router.push("/customer");
       return { success: true };
     },
     [router],
@@ -139,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sessionUser: User = { id, name: newUser.name, email: newUser.email };
       setUser(sessionUser);
       saveSession(sessionUser);
-      router.push("/dashboard");
+      router.push("/customer");
       return { success: true };
     },
     [router],

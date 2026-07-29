@@ -19,8 +19,8 @@ export default function Button({
         "flex items-center gap-2 rounded-xl px-6 py-3 font-semibold transition-all duration-300",
 
         variant === "solid"
-          ? "bg-[#C8A55E] text-black hover:scale-105 hover:bg-[#E4D5A8]"
-          : "border border-[#e4e2df] bg-[#e4401c] text-[#090909] hover:scale-105",
+          ? "bg-[#C8A55E]/15 text-[#C8A55E] backdrop-blur-md hover:scale-105 hover:bg-[#C8A55E]/25"
+          : "bg-[#e4401c]/15 text-[#e4401c] backdrop-blur-md hover:scale-105 hover:bg-[#e4401c]/25",
 
         className
       )}

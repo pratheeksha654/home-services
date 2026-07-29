@@ -108,6 +108,7 @@ function DashboardContent() {
 
 
 
+      <Footer />
     </div>
 
   );

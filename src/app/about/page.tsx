@@ -2,6 +2,7 @@ import Intro from "@/components/about/Intro";
 import Story from "@/components/about/Story";
 import WhyChoose from "@/components/about/WhyChoose";
 import Promise from "@/components/about/Promise";
+import Footer from "@/components/Footer";
 
 export default function AboutPage() {
   return (
@@ -14,6 +15,8 @@ export default function AboutPage() {
       <WhyChoose />
 
       <Promise />
+
+      <Footer />
 
     </main>
   );
