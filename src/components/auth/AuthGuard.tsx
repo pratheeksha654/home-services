@@ -13,7 +13,7 @@ interface AuthGuardProps {
 const ONBOARDING_ROUTES = [
   "/onboarding/details",
   "/onboarding/role-select",
-  "/onboarding/technician",
+  "technician/apply",
 ];
 
 export default function AuthGuard({ children, guestOnly = false }: AuthGuardProps) {
