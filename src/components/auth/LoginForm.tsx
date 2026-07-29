@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import GlassInput from "@/components/ui/GlassInput";
@@ -15,18 +15,45 @@ import {
   GoogleIcon,
 } from "@/components/icons/Icons";
 
+const REMEMBER_KEY = "homefixpro_remember_email";
+
 export default function LoginForm() {
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /* ── Load saved email on mount ─────────────────────────────── */
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REMEMBER_KEY);
+      if (saved) {
+        setEmail(saved);
+        setRememberMe(true);
+      }
+    } catch {
+      // localStorage unavailable (SSR / private mode)
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setIsSubmitting(true);
+
+    // Persist or clear remembered email
+    try {
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_KEY, email);
+      } else {
+        localStorage.removeItem(REMEMBER_KEY);
+      }
+    } catch {
+      // ignore
+    }
 
     const result = await login(email, password);
     if (!result.success) {
@@ -95,22 +122,26 @@ export default function LoginForm() {
           <input
             id="remember-me"
             type="checkbox"
-            className="
-              peer sr-only
-            "
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="sr-only"
           />
           <span
-            className="
+            className={`
               flex h-[18px] w-[18px] items-center justify-center rounded-md
-              border border-border bg-surface
-              transition-all duration-300
+              border transition-all duration-300
               group-hover:border-border-hover
-              peer-checked:border-gold peer-checked:bg-gold/10
-              peer-focus-visible:ring-2 peer-focus-visible:ring-gold/30
-            "
+              ${
+                rememberMe
+                  ? "border-gold bg-gold/10"
+                  : "border-border bg-surface"
+              }
+            `}
           >
             <svg
-              className="h-3 w-3 text-gold opacity-0 peer-checked:opacity-100 transition-opacity duration-200"
+              className={`h-3 w-3 text-gold transition-all duration-200 ${
+                rememberMe ? "opacity-100 scale-100" : "opacity-0 scale-75"
+              }`}
               viewBox="0 0 12 12"
               fill="none"
               stroke="currentColor"
@@ -150,13 +181,13 @@ export default function LoginForm() {
 
       {/* ── Divider + Google ──────────────────────────────────── */}
       <div className="mt-4 space-y-3 animate-fade-in-up-delay-4">
-        <Divider text="or continue with" />
+        <Divider text="OR" />
 
         <GlassButton
           id="google-login"
           variant="secondary"
           fullWidth
-          onClick={() => {}}
+          onClick={() => { }}
         >
           <GoogleIcon size={18} />
           <span>Continue with Google</span>

@@ -1,5 +1,6 @@
 "use client";
 
+import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
 import AuthGuard from "@/components/auth/AuthGuard";
 import BrandLogo from "@/components/ui/BrandLogo";
@@ -38,7 +39,7 @@ function DashboardContent() {
   const { user, logout } = useAuth();
 
   return (
-    <div className="relative flex h-screen flex-col bg-obsidian overflow-hidden">
+    <div className="relative flex min-h-screen flex-col bg-obsidian">
       {/* Ambient glows */}
       <div
         className="absolute top-[10%] left-[15%] w-[400px] h-[400px] rounded-full opacity-[0.03] pointer-events-none"
@@ -105,13 +106,10 @@ function DashboardContent() {
         </div>
       </main>
 
-      {/* ── Footer ──────────────────────────────────────────────── */}
-      <footer className="relative z-10 pb-6 text-center">
-        <p className="text-[11px] text-text-ghost tracking-wide">
-          © 2026 HomeFixPro. All rights reserved.
-        </p>
-      </footer>
+     
+        
     </div>
+    
   );
 }
 
@@ -121,5 +119,7 @@ function DashStat({ value, label }: { value: string; label: string }) {
       <div className="text-lg font-heading font-bold text-gold-light">{value}</div>
       <div className="text-[11px] font-medium text-text-muted tracking-wide uppercase">{label}</div>
     </div>
+    
   );
+
 }
