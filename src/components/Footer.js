@@ -1,3 +1,5 @@
+"use client";
+
 import {
   FaFacebookF,
   FaInstagram,
@@ -6,6 +8,7 @@ import {
 
 import { Phone, Mail, MapPin } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 
 export default function Footer() {
@@ -16,30 +19,30 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
 
           {/* Logo */}
-         <div>
-  <div className="flex items-center gap-3">
-    <Image
-      src="/logo.png"
-      alt="FixNest Logo"
-      width={200}
-      height={60}
-      className="object-contain"
-    />
+          <div>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logo.png"
+                alt="FixNest Logo"
+                width={200}
+                height={60}
+                className="object-contain"
+              />
 
-    
-  </div>
 
-  <p className="mt-4 text-[#9CA0AE] leading-7">
-    Smart Home Repair &
-    <br />
-    Field Service Platform
-  </p>
+            </div>
 
-  <p className="mt-6 text-[#5C6070] text-sm leading-7 max-w-xs">
-    Connecting homes with trusted professionals for all your repair and
-    maintenance needs.
-  </p>
-</div>
+            <p className="mt-4 text-[#9CA0AE] leading-7">
+              Smart Home Repair &
+              <br />
+              Field Service Platform
+            </p>
+
+            <p className="mt-6 text-[#5C6070] text-sm leading-7 max-w-xs">
+              Connecting homes with trusted professionals for all your repair and
+              maintenance needs.
+            </p>
+          </div>
 
           {/* Quick Links */}
           <div>
@@ -48,13 +51,12 @@ export default function Footer() {
             </h2>
 
             <ul className="space-y-4 text-[#9CA0AE]">
-              <li className="hover:text-[#C8A55E] cursor-pointer">Home</li>
-              
-              <li className="hover:text-[#C8A55E] cursor-pointer">About</li>
-              <li className="hover:text-[#C8A55E] cursor-pointer">
+              <li className="hover:text-[#C8A55E] transition-colors duration-200"><Link href="/customer">Home</Link></li>
+              <li className="hover:text-[#C8A55E] transition-colors duration-200"><Link href="/about">About</Link></li>
+              <li className="hover:text-[#C8A55E] transition-colors duration-200">
                 Privacy Policy
               </li>
-              <li className="hover:text-[#C8A55E] cursor-pointer">Terms and Conditions</li>
+              <li className="hover:text-[#C8A55E] transition-colors duration-200"><Link href="/terms">Terms and Conditions</Link></li>
             </ul>
           </div>
 
@@ -108,15 +110,15 @@ export default function Footer() {
             <div className="flex gap-4">
 
               <div className="p-3 rounded-full border border-[#C8A55E]/30 hover:bg-[#C8A55E] hover:text-black cursor-pointer transition">
-               <FaFacebookF size={22} />
+                <FaFacebookF size={22} />
               </div>
 
               <div className="p-3 rounded-full border border-[#C8A55E]/30 hover:bg-[#C8A55E] hover:text-black cursor-pointer transition">
-               <FaInstagram size={22} />
+                <FaInstagram size={22} />
               </div>
 
               <div className="p-3 rounded-full border border-[#C8A55E]/30 hover:bg-[#C8A55E] hover:text-black cursor-pointer transition">
-              <FaLinkedinIn size={22} />
+                <FaLinkedinIn size={22} />
               </div>
 
             </div>

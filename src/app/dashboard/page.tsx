@@ -6,6 +6,7 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import BrandLogo from "@/components/ui/BrandLogo";
 import GlassButton from "@/components/ui/GlassButton";
 
+
 function LogOutIcon() {
   return (
 
@@ -106,10 +107,11 @@ function DashboardContent() {
         </div>
       </main>
 
-     
-        
+
+
+      <Footer />
     </div>
-    
+
   );
 }
 
@@ -119,7 +121,6 @@ function DashStat({ value, label }: { value: string; label: string }) {
       <div className="text-lg font-heading font-bold text-gold-light">{value}</div>
       <div className="text-[11px] font-medium text-text-muted tracking-wide uppercase">{label}</div>
     </div>
-    
-  );
 
+  );
 }
