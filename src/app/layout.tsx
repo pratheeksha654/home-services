@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import Providers from "@/components/Providers";
 import "./globals.css";
+import NavbarWrapper from "@/components/NavbarWrapper";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,9 +34,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+        <Providers>
+          <NavbarWrapper />
+          <main className="flex-1">{children}</main>
+        </Providers>
       </body>
     </html>
   );
 }
-

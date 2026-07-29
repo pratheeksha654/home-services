@@ -9,6 +9,7 @@ import GlassButton from "@/components/ui/GlassButton";
 
 function LogOutIcon() {
   return (
+
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width={18}
