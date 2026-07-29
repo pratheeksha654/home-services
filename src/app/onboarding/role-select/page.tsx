@@ -213,9 +213,9 @@ function RoleSelectContent() {
         }
 
         // 4. Navigate to dashboard using replace to clear history stack
-        router.replace("/dashboard");
+        router.replace("/customer");
       } else {
-        router.push("/onboarding/technician");
+        router.push("/technician/apply");
       }
     } catch (error) {
       console.error("Error during selection:", error);
