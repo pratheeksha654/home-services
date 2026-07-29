@@ -13,10 +13,10 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
         <React.Fragment key={i}>
           <div
             className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold font-outfit transition-all duration-300 ${i + 1 === current
-                ? "bg-gradient-to-br from-[#C8A55E] to-[#A08844] text-[#08090D] shadow-lg shadow-[#C8A55E]/30"
-                : i + 1 < current
-                  ? "bg-[#C8A55E]/20 text-[#C8A55E] border border-[#C8A55E]/40"
-                  : "bg-[#14161E] text-[#5C6070] border border-[rgba(255,255,255,0.06)]"
+              ? "bg-gradient-to-br from-[#C8A55E] to-[#A08844] text-[#08090D] shadow-lg shadow-[#C8A55E]/30"
+              : i + 1 < current
+                ? "bg-[#C8A55E]/20 text-[#C8A55E] border border-[#C8A55E]/40"
+                : "bg-[#14161E] text-[#5C6070] border border-[rgba(255,255,255,0.06)]"
               }`}
           >
             {i + 1 < current ? (
@@ -30,8 +30,8 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
           {i < total - 1 && (
             <div
               className={`flex-1 h-px transition-all duration-500 ${i + 1 < current
-                  ? "bg-gradient-to-r from-[#C8A55E]/60 to-[#C8A55E]/20"
-                  : "bg-[rgba(255,255,255,0.06)]"
+                ? "bg-gradient-to-r from-[#C8A55E]/60 to-[#C8A55E]/20"
+                : "bg-[rgba(255,255,255,0.06)]"
                 }`}
             />
           )}
