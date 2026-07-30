@@ -15,7 +15,7 @@ const actions = [
     title: "Assign Technician",
     description:
       "Assign available technicians to pending service requests.",
-    href: "/coordinator/assign",
+    href: "/coordinator/assign-technician",
     icon: UserPlus,
     color: "bg-[#6366F1]",
   },

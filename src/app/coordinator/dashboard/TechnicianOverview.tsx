@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   UserCheck,
@@ -7,10 +8,19 @@ import {
   UserX,
 } from "lucide-react";
 
-const technicians = [
+type TechnicianCard = {
+  title: string;
+  count: number;
+  subtitle: string;
+  color: string;
+  bg: string;
+  border: string;
+  icon: typeof UserCheck;
+};
+
+const baseCards: Omit<TechnicianCard, "count">[] = [
   {
     title: "Available",
-    count: 18,
     subtitle: "Ready for Assignment",
     color: "text-green-400",
     bg: "bg-green-500/10",
@@ -19,7 +29,6 @@ const technicians = [
   },
   {
     title: "Busy",
-    count: 24,
     subtitle: "Currently Working",
     color: "text-orange-400",
     bg: "bg-orange-500/10",
@@ -28,7 +37,6 @@ const technicians = [
   },
   {
     title: "Offline",
-    count: 6,
     subtitle: "Unavailable",
     color: "text-gray-400",
     bg: "bg-gray-500/10",
@@ -38,16 +46,47 @@ const technicians = [
 ];
 
 export default function TechnicianOverview() {
+  const [cards, setCards] = useState<TechnicianCard[]>(baseCards.map((item) => ({ ...item, count: 0 })));
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+
+    const loadTechnicians = async () => {
+      try {
+        const response = await fetch(`${backendUrl}/technicians?approval_status=Approved&availability=Available`);
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : null;
+        const technicians = data?.data?.technicians || [];
+
+        const availableCount = technicians.filter((t: any) => t.availability === "Available").length;
+        const busyCount = technicians.filter((t: any) => t.availability === "Busy").length;
+        const offlineCount = technicians.filter((t: any) => t.availability === "Offline").length;
+
+        setCards([
+          { ...baseCards[0], count: availableCount },
+          { ...baseCards[1], count: busyCount },
+          { ...baseCards[2], count: offlineCount },
+        ]);
+      } catch (error) {
+        console.error("Failed to load technician overview", error);
+        setCards(baseCards.map((item) => ({ ...item, count: 0 })));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTechnicians();
+  }, []);
+
   return (
     <section className="mt-12">
-
       <h2 className="mb-6 text-2xl font-bold text-[#ECEDF0]">
         Technician Overview
       </h2>
 
       <div className="grid gap-6 lg:grid-cols-3">
-
-        {technicians.map((item, index) => {
+        {cards.map((item, index) => {
           const Icon = item.icon;
 
           return (
@@ -65,48 +104,23 @@ export default function TechnicianOverview() {
               }}
               className={`rounded-3xl border ${item.border} bg-[#14161E] p-6 mb-10`}
             >
-
               <div className="flex items-center justify-between">
-
                 <div>
-
-                  <p className="text-[#9CA0AE]">
-
-                    {item.title}
-
-                  </p>
-
+                  <p className="text-[#9CA0AE]">{item.title}</p>
                   <h1 className="mt-3 text-5xl font-black text-[#ECEDF0]">
-
-                    {item.count}
-
+                    {loading ? "—" : item.count}
                   </h1>
-
-                  <p className="mt-2 text-sm text-[#9CA0AE]">
-
-                    {item.subtitle}
-
-                  </p>
-
+                  <p className="mt-2 text-sm text-[#9CA0AE]">{item.subtitle}</p>
                 </div>
 
-                <div
-                  className={`${item.bg} rounded-2xl p-5`}
-                >
-                  <Icon
-                    size={34}
-                    className={item.color}
-                  />
+                <div className={`${item.bg} rounded-2xl p-5`}>
+                  <Icon size={34} className={item.color} />
                 </div>
-
               </div>
-
             </motion.div>
           );
         })}
-
       </div>
-
     </section>
   );
 }
