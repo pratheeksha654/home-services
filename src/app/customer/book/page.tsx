@@ -92,7 +92,12 @@ export default function BookingPage() {
     const { user } = useAuth();
     const [step, setStep] = useState<1 | 2 | 3>(1);
 
-    // Form State
+    // Form State for Prompt Requirements:
+    // Customer Name, Phone Number, Email, Service Category, Problem Description, Address, Preferred Date, Preferred Time
+    const [customerName, setCustomerName] = useState<string>("");
+    const [phone, setPhone] = useState<string>("");
+    const [email, setEmail] = useState<string>("");
+
     const [selectedService, setSelectedService] = useState<string | null>(null);
     const [issueDescription, setIssueDescription] = useState<string>("");
     const [bookingDate, setBookingDate] = useState<string>("");
@@ -102,7 +107,7 @@ export default function BookingPage() {
     const [isCustomTime, setIsCustomTime] = useState<boolean>(false);
     const [customTimeSlot, setCustomTimeSlot] = useState<string>("");
 
-    // Address pre-populated from user profile, editable
+    // Address State
     const [address, setAddress] = useState({
         street: "",
         city: "",
@@ -111,19 +116,25 @@ export default function BookingPage() {
 
     const [notes, setNotes] = useState<string>("");
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [successMsg, setSuccessMsg] = useState<boolean>(false);
 
     // Get today's date formatted for HTML date picker min attribute
     const todayDateStr = new Date().toISOString().split("T")[0];
 
-    // Auto-fill address from AuthContext when user profile is loaded
+    // Auto-fill customer info & address from AuthContext when user profile loads
     useEffect(() => {
-        const addressData = user?.address as UserAddressShape | undefined;
-        if (addressData) {
-            setAddress({
-                street: addressData.street || addressData.streetAddress || "",
-                city: addressData.city || "",
-                postalCode: addressData.postalCode || addressData.zipCode || "",
-            });
+        if (user) {
+            if (user.name) setCustomerName(user.name);
+            if (user.email) setEmail(user.email);
+            if (user.phone) setPhone(user.phone);
+            if (user.address) {
+                setAddress({
+                    street: user.address.street || user.address.streetAddress || "",
+                    city: user.address.city || "",
+                    postalCode: user.address.postalCode || user.address.zipCode || "",
+                });
+            }
         }
     }, [user]);
 
@@ -131,38 +142,134 @@ export default function BookingPage() {
     const finalTimeSlot = isCustomTime ? customTimeSlot : timeSlot;
 
     const handleNextStep = () => {
-        if (step === 1 && !selectedService) return;
-        if (step === 2 && (!bookingDate || !finalTimeSlot.trim())) return;
+        setErrorMsg(null);
+        if (step === 1) {
+            if (!selectedService) {
+                setErrorMsg("Please select a service category.");
+                return;
+            }
+            if (selectedService === "other" && !issueDescription.trim()) {
+                setErrorMsg("Please describe the issue.");
+                return;
+            }
+        }
+        if (step === 2) {
+            if (!bookingDate) {
+                setErrorMsg("Please select a preferred date.");
+                return;
+            }
+            if (!finalTimeSlot.trim()) {
+                setErrorMsg("Please select or enter a preferred time slot.");
+                return;
+            }
+        }
         setStep((prev) => (prev + 1) as 2 | 3);
     };
 
     const handlePrevStep = () => {
+        setErrorMsg(null);
         setStep((prev) => (prev - 1) as 1 | 2);
+    };
+
+    const resetForm = () => {
+        setSelectedService(null);
+        setIssueDescription("");
+        setBookingDate("");
+        setTimeSlot("");
+        setCustomTimeSlot("");
+        setIsCustomTime(false);
+        setNotes("");
+        if (!user) {
+            setCustomerName("");
+            setPhone("");
+            setEmail("");
+            setAddress({ street: "", city: "", postalCode: "" });
+        }
+        setStep(1);
     };
 
     const handleSubmitBooking = async (e: React.FormEvent) => {
         e.preventDefault();
+        setErrorMsg(null);
+
+        // Validation for all required fields
+        if (!customerName.trim()) {
+            setErrorMsg("Customer Name is required.");
+            return;
+        }
+        if (!phone.trim()) {
+            setErrorMsg("Phone Number is required.");
+            return;
+        }
+        if (!email.trim()) {
+            setErrorMsg("Email is required.");
+            return;
+        }
+        if (!selectedService) {
+            setErrorMsg("Service Category is required.");
+            return;
+        }
+        if (!issueDescription.trim()) {
+            setErrorMsg("Problem Description is required.");
+            return;
+        }
+        if (!address.street.trim() || !address.city.trim() || !address.postalCode.trim()) {
+            setErrorMsg("Full Address (Street, City, Postal Code) is required.");
+            return;
+        }
+        if (!bookingDate) {
+            setErrorMsg("Preferred Date is required.");
+            return;
+        }
+        if (!finalTimeSlot.trim()) {
+            setErrorMsg("Preferred Time is required.");
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
+            const formattedAddress = `${address.street}, ${address.city}, ${address.postalCode}`;
+            const serviceCategoryName = activeServiceObj ? activeServiceObj.name : selectedService;
+
             const payload = {
-                serviceId: selectedService,
-                serviceName: activeServiceObj?.name,
-                issueDescription,
-                date: bookingDate,
-                timeSlot: finalTimeSlot,
-                address,
-                notes,
+                customer_name: customerName,
+                phone: phone,
+                email: email,
+                service_category: serviceCategoryName,
+                problem_description: issueDescription,
+                address: formattedAddress,
+                preferred_date: bookingDate,
+                preferred_time: finalTimeSlot,
+                booking_type: "Normal",
+                notes: notes,
             };
 
-            console.log("Booking Submitted:", payload);
+            const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+            const response = await fetch(`${backendUrl}/bookings`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
 
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to submit booking.");
+            }
+
+            setSuccessMsg(true);
+            resetForm();
             setTimeout(() => {
-                setIsSubmitting(false);
-                router.push("/services?booked=success");
-            }, 1200);
-        } catch (err) {
+                setSuccessMsg(false);
+                router.push("/customer");
+            }, 3000);
+        } catch (err: any) {
             console.error("Booking error:", err);
+            setErrorMsg(err.message || "An unexpected error occurred while saving your booking.");
+        } finally {
             setIsSubmitting(false);
         }
     };
@@ -170,59 +277,93 @@ export default function BookingPage() {
     return (
         <div className="min-h-screen bg-[#08090D] text-[#ECEDF0] py-10 px-4 sm:px-6 lg:px-8 font-inter">
             <div className="max-w-5xl mx-auto">
+                {/* Success Notification Modal */}
+                {successMsg && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn">
+                        <div className="bg-[#10121A] border border-[#C8A55E] rounded-2xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl">
+                            <div className="w-16 h-16 bg-[#C8A55E]/20 text-[#C8A55E] rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                                ✓
+                            </div>
+                            <h3 className="text-2xl font-bold font-outfit text-white mb-2">
+                                Booking Confirmed!
+                            </h3>
+                            <p className="text-sm text-[#9CA0AE] mb-6">
+                                Your service request has been sent to our backend database and is now pending coordinator assignment.
+                            </p>
+                            <button
+                                onClick={() => setSuccessMsg(false)}
+                                className="w-full py-2.5 rounded-xl bg-[#C8A55E] text-[#08090D] font-semibold text-sm hover:opacity-90 transition-opacity"
+                            >
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Header */}
                 <div className="text-center mb-10">
                     <h1 className="text-3xl sm:text-4xl font-bold font-outfit text-white tracking-tight">
                         Book a Service
                     </h1>
                     <p className="mt-2 text-sm text-[#9CA0AE]">
-                        Select a service, describe the issue, pick your preferred date & time slot, and our expert will handle the rest.
+                        Select a service, describe the issue, pick your preferred date & time slot, and our coordinator will assign an expert.
                     </p>
                 </div>
+
+                {/* Error Banner */}
+                {errorMsg && (
+                    <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span>{errorMsg}</span>
+                    </div>
+                )}
 
                 {/* Step Indicator Bar */}
                 <div className="flex items-center justify-center mb-10 max-w-xl mx-auto">
                     {[
                         { num: 1, title: "Service & Issue" },
                         { num: 2, title: "Schedule" },
-                        { num: 3, title: "Address & Confirm" },
+                        { num: 3, title: "Contact & Address" },
                     ].map((item, index) => (
                         <React.Fragment key={item.num}>
                             <div className="flex items-center gap-2">
                                 <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step >= item.num
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                        step >= item.num
                                             ? "bg-gradient-to-r from-[#C8A55E] to-[#E4D5A8] text-[#08090D]"
                                             : "bg-[#14161E] text-[#5C6070] border border-[rgba(255,255,255,0.08)]"
-                                        }`}
+                                    }`}
                                 >
                                     {item.num}
                                 </div>
                                 <span
-                                    className={`text-xs font-medium hidden sm:inline ${step >= item.num ? "text-[#ECEDF0]" : "text-[#5C6070]"
-                                        }`}
+                                    className={`text-xs font-medium hidden sm:inline ${
+                                        step >= item.num ? "text-[#ECEDF0]" : "text-[#5C6070]"
+                                    }`}
                                 >
                                     {item.title}
                                 </span>
                             </div>
                             {index < 2 && (
                                 <div
-                                    className={`flex-1 h-[2px] mx-3 transition-colors ${step > item.num ? "bg-[#C8A55E]" : "bg-[rgba(255,255,255,0.08)]"
-                                        }`}
+                                    className={`flex-1 h-[2px] mx-3 transition-colors ${
+                                        step > item.num ? "bg-[#C8A55E]" : "bg-[rgba(255,255,255,0.08)]"
+                                    }`}
                                 />
                             )}
                         </React.Fragment>
                     ))}
                 </div>
 
-                {/* Main Grid Layout */}
+                {/* Main Form Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    {/* Main Form Area */}
+                    {/* Form Step Area */}
                     <div className="lg:col-span-2 bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 sm:p-8 backdrop-blur-xl">
                         {/* STEP 1: SELECT SERVICE & ISSUE */}
                         {step === 1 && (
                             <div>
                                 <h2 className="text-xl font-semibold text-white font-outfit mb-4">
-                                    Select Required Service
+                                    Select Required Service Category
                                 </h2>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                                     {SERVICES.map((srv) => {
@@ -231,11 +372,15 @@ export default function BookingPage() {
                                             <button
                                                 key={srv.id}
                                                 type="button"
-                                                onClick={() => setSelectedService(srv.id)}
-                                                className={`text-left p-4 rounded-xl border transition-all duration-200 flex flex-col justify-between ${isSelected
+                                                onClick={() => {
+                                                    setSelectedService(srv.id);
+                                                    setErrorMsg(null);
+                                                }}
+                                                className={`text-left p-4 rounded-xl border transition-all duration-200 flex flex-col justify-between ${
+                                                    isSelected
                                                         ? "bg-[#C8A55E]/10 border-[#C8A55E] shadow-lg shadow-[#C8A55E]/10"
                                                         : "bg-[#14161E]/60 border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]"
-                                                    }`}
+                                                }`}
                                             >
                                                 <div className="flex items-center gap-3 mb-2">
                                                     <span className="text-2xl">{srv.icon}</span>
@@ -256,64 +401,51 @@ export default function BookingPage() {
                                     })}
                                 </div>
 
-                                {/* Dynamic Issue Description Textarea */}
+                                {/* Problem Description */}
                                 {selectedService && (
                                     <div className="pt-4 border-t border-[rgba(255,255,255,0.08)]">
                                         <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-2">
-                                            Describe the Issue {selectedService === "other" && <span className="text-[#C8A55E]">*</span>}
+                                            Problem Description <span className="text-[#C8A55E]">*</span>
                                         </label>
                                         <textarea
                                             rows={3}
+                                            required
                                             value={issueDescription}
                                             onChange={(e) => setIssueDescription(e.target.value)}
-                                            placeholder={
-                                                selectedService === "other"
-                                                    ? "Please specify the problem or task you need help with..."
-                                                    : `What seems to be the issue with the ${activeServiceObj?.name.toLowerCase()} work? (e.g., tap leaking, switch spark, AC not cooling)`
-                                            }
+                                            placeholder="Describe what needs repair or servicing in detail..."
                                             className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.12)] rounded-xl p-3.5 text-sm text-white focus:outline-none focus:border-[#C8A55E] focus:ring-1 focus:ring-[#C8A55E] transition-colors"
                                         />
-
-                                        {/* Inspection Clause Notice */}
-                                        <p className="text-[11px] text-[#9CA0AE] mt-2.5 flex items-center gap-1.5">
-                                            <span className="text-[#C8A55E]">⚠️</span>
-                                            <span>
-                                                <strong className="text-white font-medium">Note:</strong> Final charges may vary based on on-site inspection and actual spare parts required by the technician.
-                                            </span>
-                                        </p>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* STEP 2: DATE & TIME SLOTS */}
+                        {/* STEP 2: DATE & TIME */}
                         {step === 2 && (
                             <div>
                                 <h2 className="text-xl font-semibold text-white font-outfit mb-4">
-                                    Select Date & Preferred Time
+                                    Select Preferred Date & Time
                                 </h2>
 
                                 <div className="space-y-6">
-                                    {/* Date Input */}
                                     <div>
                                         <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-2">
-                                            Preferred Date
+                                            Preferred Date <span className="text-[#C8A55E]">*</span>
                                         </label>
                                         <input
                                             type="date"
                                             value={bookingDate}
                                             onChange={(e) => setBookingDate(e.target.value)}
                                             min={todayDateStr}
-                                            className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.12)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E] focus:ring-1 focus:ring-[#C8A55E] transition-colors color-scheme-dark"
+                                            className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.12)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E] focus:ring-1 focus:ring-[#C8A55E] transition-colors"
                                             style={{ colorScheme: "dark" }}
                                         />
                                     </div>
 
-                                    {/* Time Slots */}
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE]">
-                                                Available Time Slots
+                                                Preferred Time Slot <span className="text-[#C8A55E]">*</span>
                                             </label>
                                             <button
                                                 type="button"
@@ -323,7 +455,7 @@ export default function BookingPage() {
                                                 }}
                                                 className="text-xs text-[#C8A55E] hover:underline font-medium transition-colors"
                                             >
-                                                {isCustomTime ? "← Choose Predefined Slot" : "+ Custom Time Slot"}
+                                                {isCustomTime ? "← Predefined Slots" : "+ Custom Time"}
                                             </button>
                                         </div>
 
@@ -339,10 +471,11 @@ export default function BookingPage() {
                                                                 e.preventDefault();
                                                                 setTimeSlot(slot);
                                                             }}
-                                                            className={`p-3 rounded-xl border text-xs font-semibold text-center transition-all cursor-pointer ${isSelected
+                                                            className={`p-3 rounded-xl border text-xs font-semibold text-center transition-all cursor-pointer ${
+                                                                isSelected
                                                                     ? "bg-[#C8A55E] text-[#08090D] border-[#C8A55E] shadow-md shadow-[#C8A55E]/20"
                                                                     : "bg-[#14161E] text-[#9CA0AE] border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.2)] hover:text-white"
-                                                                }`}
+                                                            }`}
                                                         >
                                                             {slot}
                                                         </button>
@@ -350,17 +483,14 @@ export default function BookingPage() {
                                                 })}
                                             </div>
                                         ) : (
-                                            <div className="animate-fadeIn">
+                                            <div>
                                                 <input
                                                     type="text"
                                                     value={customTimeSlot}
                                                     onChange={(e) => setCustomTimeSlot(e.target.value)}
-                                                    placeholder="e.g. 07:30 PM - 08:30 PM or After 6 PM"
+                                                    placeholder="e.g. 07:30 PM - 08:30 PM"
                                                     className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.12)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E] focus:ring-1 focus:ring-[#C8A55E] transition-colors"
                                                 />
-                                                <p className="text-[11px] text-[#9CA0AE] mt-1.5">
-                                                    Specify your preferred custom timing window.
-                                                </p>
                                             </div>
                                         )}
                                     </div>
@@ -368,95 +498,122 @@ export default function BookingPage() {
                             </div>
                         )}
 
-                        {/* STEP 3: LOCATION & NOTES */}
+                        {/* STEP 3: CONTACT & ADDRESS */}
                         {step === 3 && (
                             <form onSubmit={handleSubmitBooking}>
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-xl font-semibold text-white font-outfit">
-                                        Service Address & Details
-                                    </h2>
-                                    <span className="text-[11px] text-[#C8A55E] bg-[#C8A55E]/10 border border-[#C8A55E]/20 px-2.5 py-1 rounded-full font-medium">
-                                        Pre-filled from profile
-                                    </span>
-                                </div>
+                                <h2 className="text-xl font-semibold text-white font-outfit mb-4">
+                                    Customer Contact & Service Address
+                                </h2>
 
                                 <div className="space-y-4">
+                                    {/* Customer Name */}
                                     <div>
                                         <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-1.5">
-                                            Street Address
+                                            Customer Name <span className="text-[#C8A55E]">*</span>
                                         </label>
                                         <input
                                             type="text"
                                             required
-                                            placeholder="House No., Street Name, Area"
-                                            value={address.street}
-                                            onChange={(e) =>
-                                                setAddress({ ...address, street: e.target.value })
-                                            }
+                                            placeholder="Enter your full name"
+                                            value={customerName}
+                                            onChange={(e) => setCustomerName(e.target.value)}
                                             className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
                                         />
                                     </div>
 
+                                    {/* Phone & Email */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-1.5">
-                                                City
+                                                Phone Number <span className="text-[#C8A55E]">*</span>
                                             </label>
                                             <input
-                                                type="text"
+                                                type="tel"
                                                 required
-                                                placeholder="e.g. Manipal / Udupi"
-                                                value={address.city}
-                                                onChange={(e) =>
-                                                    setAddress({ ...address, city: e.target.value })
-                                                }
+                                                placeholder="+91 98765 43210"
+                                                value={phone}
+                                                onChange={(e) => setPhone(e.target.value)}
                                                 className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-1.5">
-                                                Postal Code
+                                                Email Address <span className="text-[#C8A55E]">*</span>
                                             </label>
                                             <input
-                                                type="text"
+                                                type="email"
                                                 required
-                                                placeholder="576104"
-                                                value={address.postalCode}
-                                                onChange={(e) =>
-                                                    setAddress({ ...address, postalCode: e.target.value })
-                                                }
+                                                placeholder="name@example.com"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
                                                 className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
                                             />
                                         </div>
                                     </div>
 
+                                    {/* Street Address */}
                                     <div>
                                         <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-1.5">
-                                            Additional Gate Codes / Instructions (Optional)
+                                            Street Address <span className="text-[#C8A55E]">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="House No., Building / Street Name, Area"
+                                            value={address.street}
+                                            onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                                            className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
+                                        />
+                                    </div>
+
+                                    {/* City & Postal Code */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-1.5">
+                                                City <span className="text-[#C8A55E]">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="e.g. Bangalore"
+                                                value={address.city}
+                                                onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                                                className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-1.5">
+                                                Postal Code <span className="text-[#C8A55E]">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder="560001"
+                                                value={address.postalCode}
+                                                onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
+                                                className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Notes */}
+                                    <div>
+                                        <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-1.5">
+                                            Additional Notes / Landmark (Optional)
                                         </label>
                                         <textarea
                                             rows={2}
-                                            placeholder="Provide gate codes or landmark instructions for technician..."
+                                            placeholder="Provide landmarks or special instructions for the coordinator/technician..."
                                             value={notes}
                                             onChange={(e) => setNotes(e.target.value)}
                                             className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
                                         />
                                     </div>
-
-                                    {/* Pricing Terms Banner */}
-                                    <div className="p-3.5 bg-[#14161E] border border-[#C8A55E]/20 rounded-xl text-xs text-[#9CA0AE]">
-                                        <p className="flex items-start gap-2">
-                                            <span className="text-[#C8A55E] mt-0.5">ℹ️</span>
-                                            <span>
-                                                <strong className="text-white">Pricing Policy:</strong> The cost displayed is a baseline visiting fee. Final charges are determined after detailed inspection by the technician based on task complexity and replacement parts.
-                                            </span>
-                                        </p>
-                                    </div>
                                 </div>
                             </form>
                         )}
 
-                        {/* Navigation Buttons */}
+                        {/* Navigation Controls */}
                         <div className="mt-8 flex items-center justify-between pt-6 border-t border-[rgba(255,255,255,0.06)]">
                             {step > 1 ? (
                                 <button
@@ -473,12 +630,8 @@ export default function BookingPage() {
                             {step < 3 ? (
                                 <button
                                     type="button"
-                                    disabled={
-                                        (step === 1 && (!selectedService || (selectedService === "other" && !issueDescription.trim()))) ||
-                                        (step === 2 && (!bookingDate || !finalTimeSlot.trim()))
-                                    }
                                     onClick={handleNextStep}
-                                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] text-[#08090D] font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all"
+                                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] text-[#08090D] font-semibold text-xs hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all"
                                 >
                                     Continue
                                 </button>
@@ -486,27 +639,33 @@ export default function BookingPage() {
                                 <button
                                     type="button"
                                     onClick={handleSubmitBooking}
-                                    disabled={
-                                        isSubmitting ||
-                                        !address.street ||
-                                        !address.city ||
-                                        !address.postalCode
-                                    }
+                                    disabled={isSubmitting}
                                     className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] text-[#08090D] font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all flex items-center gap-2"
                                 >
-                                    {isSubmitting ? "Confirming..." : "Confirm & Book"}
+                                    {isSubmitting ? "Submitting to Supabase..." : "Confirm & Submit Booking"}
                                 </button>
                             )}
                         </div>
                     </div>
 
-                    {/* Booking Summary Sidebar */}
+                    {/* Summary Sidebar */}
                     <div className="bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 backdrop-blur-xl">
                         <h3 className="text-base font-semibold text-white font-outfit mb-4 pb-3 border-b border-[rgba(255,255,255,0.06)]">
                             Booking Summary
                         </h3>
 
                         <div className="space-y-4 text-xs">
+                            <div>
+                                <span className="text-[#5C6070] uppercase font-semibold block mb-1">
+                                    Customer
+                                </span>
+                                <p className="text-white font-medium">
+                                    {customerName || "Not entered"}
+                                </p>
+                                {phone && <p className="text-[#9CA0AE]">{phone}</p>}
+                                {email && <p className="text-[#9CA0AE]">{email}</p>}
+                            </div>
+
                             <div>
                                 <span className="text-[#5C6070] uppercase font-semibold block mb-1">
                                     Selected Service
@@ -524,7 +683,7 @@ export default function BookingPage() {
                             {issueDescription && (
                                 <div>
                                     <span className="text-[#5C6070] uppercase font-semibold block mb-1">
-                                        Issue Details
+                                        Problem Description
                                     </span>
                                     <p className="text-white font-medium line-clamp-2">
                                         {issueDescription}
@@ -534,7 +693,7 @@ export default function BookingPage() {
 
                             <div>
                                 <span className="text-[#5C6070] uppercase font-semibold block mb-1">
-                                    Date & Time
+                                    Preferred Date & Time
                                 </span>
                                 {bookingDate && finalTimeSlot ? (
                                     <p className="text-white font-medium">
@@ -548,11 +707,11 @@ export default function BookingPage() {
 
                             <div>
                                 <span className="text-[#5C6070] uppercase font-semibold block mb-1">
-                                    Location
+                                    Address
                                 </span>
                                 {address.street ? (
                                     <p className="text-white font-medium truncate">
-                                        {address.street}, {address.city}
+                                        {address.street}, {address.city} {address.postalCode}
                                     </p>
                                 ) : (
                                     <p className="text-[#5C6070] italic">Not provided yet</p>
@@ -561,14 +720,11 @@ export default function BookingPage() {
 
                             <div className="pt-4 border-t border-[rgba(255,255,255,0.06)]">
                                 <div className="flex items-center justify-between text-sm mb-1">
-                                    <span className="font-semibold text-white">Estimated Base Cost</span>
-                                    <span className="font-bold text-[#C8A55E] font-mono text-base">
-                                        ${activeServiceObj ? activeServiceObj.basePrice : 0}
+                                    <span className="font-semibold text-white">Booking Type</span>
+                                    <span className="font-bold text-[#C8A55E] font-mono text-xs bg-[#C8A55E]/10 px-2 py-0.5 rounded border border-[#C8A55E]/20">
+                                        Normal
                                     </span>
                                 </div>
-                                <p className="text-[10px] text-[#5C6070] leading-tight">
-                                    *Final charges depend on technician's inspection & materials required.
-                                </p>
                             </div>
                         </div>
                     </div>
