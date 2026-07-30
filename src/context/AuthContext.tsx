@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useRouter } from "next/navigation";
 
 /* ── Types ──────────────────────────────────────────────────────── */
-export type UserRole = "CUSTOMER" | "TECHNICIAN" | "TECHNICIAN_PENDING" | "COORDINATOR" | "ADMIN";
+export type UserRole = "CUSTOMER" | "TECHNICIAN" | "TECHNICIAN_PENDING" | "TECHNICIAN_REJECTED" | "REJECTED" | "COORDINATOR" | "ADMIN";
 
 export interface UserAddress {
   street: string;
@@ -86,6 +86,9 @@ export function getRoleBasedRoute(role?: string): string {
       return "/technician/pending";
     case "TECHNICIAN_PENDING":
       return "/technician/pending";
+    case "TECHNICIAN_REJECTED":
+    case "REJECTED":
+      return "/technician/rejected";
     default:
       return "/customer";
   }

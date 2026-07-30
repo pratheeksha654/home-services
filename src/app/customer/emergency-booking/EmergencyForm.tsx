@@ -15,20 +15,54 @@ export default function EmergencyForm() {
   const [category, setCategory] = useState("");
   const [problem, setProblem] = useState("");
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-  if (!category.trim()) {
-    alert("Please select a service category.");
-    return;
-  }
+  const handleSubmit = async () => {
+    if (!category.trim()) {
+      alert("Please select a service category.");
+      return;
+    }
 
-  if (!problem.trim()) {
-    alert("Please describe your emergency.");
-    return;
-  }
+    if (!problem.trim()) {
+      alert("Please describe your emergency.");
+      return;
+    }
 
-  setOpen(true);
-};
+    setSubmitting(true);
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+      const response = await fetch(`${API_URL}/emergency-requests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerName: "Customer",
+          customerPhone: "+91 9876543210",
+          customerEmail: "",
+          address: "Bejai, Mangalore, Karnataka",
+          city: "Mangalore",
+          serviceCategory: category,
+          description: problem,
+          priority: "High",
+          status: "pending",
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.message || "Unable to submit your emergency request.");
+      }
+
+      setOpen(true);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Failed to submit your request.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -216,15 +250,16 @@ export default function EmergencyForm() {
 
       <motion.button
        onClick={handleSubmit}
+       disabled={submitting}
 
-        whileHover={{
+        whileHover={!submitting ? {
           scale: 1.03,
           boxShadow: "0px 0px 35px rgba(200,165,94,.35)",
-        }}
+        } : {}}
 
-        whileTap={{
+        whileTap={!submitting ? {
           scale: .96,
-        }}
+        } : {}}
 
         className="
         mt-10
@@ -239,12 +274,14 @@ export default function EmergencyForm() {
         items-center
         justify-center
         gap-3
+        disabled:opacity-60
+        disabled:cursor-not-allowed
         "
       >
 
         <Send size={20} />
 
-        Request Emergency Help
+        {submitting ? "Submitting…" : "Request Emergency Help"}
 
       </motion.button>
       
