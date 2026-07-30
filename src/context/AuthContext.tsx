@@ -79,7 +79,7 @@ export function getRoleBasedRoute(role?: string): string {
     case "CUSTOMER":
       return "/customer";
     case "TECHNICIAN":
-      return "/technician/pending"; // approved technicians can be redirected further
+      return "/technician";
     case "TECHNICIAN_PENDING":
       return "/technician/pending";
     default:
