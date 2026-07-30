@@ -9,13 +9,29 @@ import {
   Phone,
   Send,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function EmergencyForm() {
+  const { user } = useAuth();
   const [category, setCategory] = useState("");
   const [problem, setProblem] = useState("");
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const customerName = user?.name?.trim() || "Customer";
+  const customerPhone = user?.phone?.trim() || user?.phoneNumber?.trim() || "";
+  const customerEmail = user?.email?.trim() || "";
+
+  const resolvedAddress = useMemo(() => {
+    const parts = [
+      user?.address?.street || user?.address?.streetAddress || "",
+      user?.address?.city || "",
+      user?.address?.postalCode || user?.address?.zipCode || "",
+    ].filter(Boolean);
+
+    return parts.join(", ") || "Bejai, Mangalore, Karnataka";
+  }, [user]);
 
   const handleSubmit = async () => {
     if (!category.trim()) {
@@ -38,15 +54,21 @@ export default function EmergencyForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          customerName: "Customer",
-          customerPhone: "+91 9876543210",
-          customerEmail: "",
-          address: "Bejai, Mangalore, Karnataka",
+          customerName,
+          customerPhone,
+          customerEmail,
+          address: resolvedAddress,
+          customerAddress: resolvedAddress,
           city: "Mangalore",
           serviceCategory: category,
           description: problem,
           priority: "High",
           status: "pending",
+          phoneNumber: customerPhone,
+          name: customerName,
+          problemDescription: problem,
+          street: user?.address?.street || user?.address?.streetAddress || "",
+          postalCode: user?.address?.postalCode || user?.address?.zipCode || "",
         }),
       });
 
@@ -152,7 +174,7 @@ export default function EmergencyForm() {
 
           <input
 
-            value="+91 9876543210"
+            value={customerPhone || "No phone number found in your profile"}
 
             readOnly
 
@@ -223,13 +245,15 @@ export default function EmergencyForm() {
 
         </label>
 
-        <textarea
+          <textarea
 
           rows={3}
 
-          readOnly
+          value={resolvedAddress}
 
-          value="Bejai, Mangalore, Karnataka"
+          onChange={(e) => setAddress(e.target.value)}
+
+          readOnly
 
           className="
           w-full
