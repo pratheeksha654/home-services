@@ -10,7 +10,6 @@ import { Phone, Mail, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-
 export default function Footer() {
   return (
     <footer className="bg-[#08090D] border-t border-[#C8A55E]/20 text-[#ECEDF0]">
@@ -28,8 +27,6 @@ export default function Footer() {
                 height={60}
                 className="object-contain"
               />
-
-
             </div>
 
             <p className="mt-4 text-[#9CA0AE] leading-7">
@@ -53,9 +50,7 @@ export default function Footer() {
             <ul className="space-y-4 text-[#9CA0AE]">
               <li className="hover:text-[#C8A55E] transition-colors duration-200"><Link href="/customer">Home</Link></li>
               <li className="hover:text-[#C8A55E] transition-colors duration-200"><Link href="/about">About</Link></li>
-              <li className="hover:text-[#C8A55E] transition-colors duration-200">
-                Privacy Policy
-              </li>
+              <li className="hover:text-[#C8A55E] transition-colors duration-200"><Link href="/privacy-policy">Privacy Policy</Link></li>
               <li className="hover:text-[#C8A55E] transition-colors duration-200"><Link href="/terms">Terms and Conditions</Link></li>
             </ul>
           </div>
