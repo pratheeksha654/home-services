@@ -10,6 +10,8 @@ export interface UserAddress {
   street: string;
   city: string;
   postalCode: string;
+  streetAddress?: string;
+  zipCode?: string;
 }
 
 export interface User {
@@ -17,6 +19,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  phoneNumber?: string;
   avatar?: string;
   avatarUrl?: string;
   // Onboarding fields
@@ -40,9 +43,11 @@ interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: (redirectTo?: string) => Promise<{ success: boolean; error?: string }>;
   signup: (data: SignupData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   getToken: () => string | null;
+  setSession: (user: User, token: string) => void;
   setUserProfile: (data: ProfileData) => void;
   setRole: (role: UserRole) => void;
   completeOnboarding: () => void;
@@ -63,6 +68,24 @@ const STORAGE_SESSION_KEY = "homefixpro_session";
 const STORAGE_TOKEN_KEY = "homefixpro_token";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+
+/** Return the correct home page for a given role */
+export function getRoleBasedRoute(role?: string): string {
+  switch (role?.toUpperCase()) {
+    case "ADMIN":
+      return "/coordinator/dashboard"; // admin shares coordinator dashboard
+    case "COORDINATOR":
+      return "/coordinator/dashboard";
+    case "CUSTOMER":
+      return "/customer";
+    case "TECHNICIAN":
+      return "/technician/pending"; // approved technicians can be redirected further
+    case "TECHNICIAN_PENDING":
+      return "/technician/pending";
+    default:
+      return "/customer"; // safe fallback
+  }
+}
 
 function getStoredSession(): User | null {
   if (typeof window === "undefined") return null;
@@ -133,11 +156,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(sessionUser);
         saveSession(sessionUser, token);
 
-        // Route based on onboarding status
+        // Route based on onboarding status & role
         if (!sessionUser.onboardingCompleted) {
           router.push("/onboarding/details");
         } else {
-          router.push("/dashboard");
+          router.push(getRoleBasedRoute(sessionUser.role));
         }
         return { success: true };
       } catch (error) {
@@ -146,6 +169,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [router],
+  );
+
+  const setSession = useCallback((sessionUser: User, token: string) => {
+    setUser(sessionUser);
+    saveSession(sessionUser, token);
+  }, []);
+
+  const loginWithGoogle = useCallback(
+    async (redirectTo?: string): Promise<{ success: boolean; error?: string }> => {
+      try {
+        const dest = redirectTo || `${window.location.origin}/auth/callback`;
+        const response = await fetch(`${API_URL}/auth/google?redirectTo=${encodeURIComponent(dest)}`);
+        const data = await response.json();
+        
+        if (!response.ok || !data.success || !data.data?.url) {
+          return { success: false, error: data.message || "Failed to initiate Google sign in." };
+        }
+        
+        window.location.href = data.data.url;
+        return { success: true };
+      } catch (error) {
+        console.error("Google login error:", error);
+        return { success: false, error: "Network error. Please try again." };
+      }
+    },
+    []
   );
 
   const signup = useCallback(
@@ -194,7 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!sessionUser.onboardingCompleted) {
           router.push("/onboarding/details");
         } else {
-          router.push("/dashboard");
+          router.push(getRoleBasedRoute(sessionUser.role));
         }
         return { success: true };
       } catch (error) {
@@ -269,9 +318,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isLoading,
         login,
+        loginWithGoogle,
         signup,
         logout,
         getToken,
+        setSession,
         setUserProfile,
         setRole,
         completeOnboarding,

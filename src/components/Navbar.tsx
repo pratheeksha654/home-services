@@ -251,19 +251,19 @@ export default function Navbar() {
       return (
         <>
           <NavLink
-            href="/coordinator"
+            href="/coordinator/dashboard"
             label="Home"
-            active={pathname === "/coordinator"}
+            active={pathname === "/coordinator/dashboard" || pathname === "/coordinator"}
+          />
+          <NavLink
+            href="/coordinator/applications"
+            label="Applications"
+            active={pathname === "/coordinator/applications"}
           />
           <NavLink
             href="/about"
             label="About Us"
             active={pathname === "/about"}
-          />
-          <NavLink
-            href="/dashboard"
-            label="Dashboard"
-            active={pathname === "/dashboard"}
           />
         </>
       );

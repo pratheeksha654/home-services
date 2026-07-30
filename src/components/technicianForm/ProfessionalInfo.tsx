@@ -83,6 +83,47 @@ export default function ProfessionalInfo({
             required
           />
         </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm text-gray-300">
+              Years of Experience
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={formData.experience || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  experience: parseInt(e.target.value, 10) || 0,
+                }))
+              }
+              placeholder="e.g. 3"
+              className="w-full rounded-xl border border-white/10 bg-[#0D0F14] px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#C8A55E] focus:outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm text-gray-300">
+              License / Certifications
+            </label>
+            <input
+              type="text"
+              value={formData.license || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  license: e.target.value,
+                }))
+              }
+              placeholder="e.g. Electrical License, HVAC Cert"
+              className="w-full rounded-xl border border-white/10 bg-[#0D0F14] px-4 py-3 text-white placeholder:text-gray-500 focus:border-[#C8A55E] focus:outline-none"
+              required
+            />
+          </div>
+        </div>
       </div>
     </section>
   );

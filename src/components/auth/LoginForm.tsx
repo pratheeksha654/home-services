@@ -18,7 +18,7 @@ import {
 const REMEMBER_KEY = "homefixpro_remember_email";
 
 export default function LoginForm() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -187,7 +187,13 @@ export default function LoginForm() {
           id="google-login"
           variant="secondary"
           fullWidth
-          onClick={() => { }}
+          onClick={async () => {
+            setError("");
+            const res = await loginWithGoogle();
+            if (res && !res.success) {
+              setError(res.error || "Failed to initiate Google login");
+            }
+          }}
         >
           <GoogleIcon size={18} />
           <span>Continue with Google</span>
