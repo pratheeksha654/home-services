@@ -5,6 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
+interface UserAddressShape {
+    street?: string;
+    streetAddress?: string;
+    city?: string;
+    postalCode?: string;
+    zipCode?: string;
+}
+
 // Service Options Data
 const SERVICES = [
     {
@@ -109,11 +117,12 @@ export default function BookingPage() {
 
     // Auto-fill address from AuthContext when user profile is loaded
     useEffect(() => {
-        if (user?.address) {
+        const addressData = user?.address as UserAddressShape | undefined;
+        if (addressData) {
             setAddress({
-                street: user.address.street || user.address.streetAddress || "",
-                city: user.address.city || "",
-                postalCode: user.address.postalCode || user.address.zipCode || "",
+                street: addressData.street || addressData.streetAddress || "",
+                city: addressData.city || "",
+                postalCode: addressData.postalCode || addressData.zipCode || "",
             });
         }
     }, [user]);

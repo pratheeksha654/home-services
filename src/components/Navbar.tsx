@@ -445,7 +445,7 @@ export default function Navbar() {
                       />
                       <InfoRow
                         label="Phone Number"
-                        value={user?.phone || user?.phoneNumber || "Not set"}
+                        value={user?.phone || "Not set"}
                       />
                       {user?.address?.city && (
                         <InfoRow

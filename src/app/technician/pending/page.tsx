@@ -2,14 +2,44 @@
 
 "use client";
 
-import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Sparkles, CheckCircle2, Clock } from "lucide-react";
 import GlassButton from "@/components/ui/GlassButton";
 
 export default function TechnicianPendingPage() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
+  const router = useRouter();
   const isApproved = user?.role === "TECHNICIAN";
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (!user?.id) return;
+
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+        const response = await fetch(`${API_URL}/technicians/application-status?userId=${encodeURIComponent(user.id)}`, {
+          headers: {
+            Authorization: `Bearer ${getToken() || ""}`,
+          },
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+          const nextStatus = data.data?.status?.toUpperCase();
+
+          if (nextStatus === "REJECTED") {
+            router.replace("/technician/rejected");
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch application status", error);
+      }
+    };
+
+    checkStatus();
+  }, [getToken, router, user?.id]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-void px-4 text-text-primary">
@@ -48,7 +78,7 @@ export default function TechnicianPendingPage() {
             </div>
 
             <div className="mt-8">
-              <GlassButton variant="primary" fullWidth onClick={() => window.location.href = "/"}>
+              <GlassButton variant="primary" fullWidth onClick={() => window.location.href = "/technician"}>
                 Go to Home
               </GlassButton>
             </div>
@@ -87,7 +117,7 @@ export default function TechnicianPendingPage() {
             </div>
 
             <div className="mt-8">
-              <GlassButton variant="secondary" fullWidth onClick={() => window.location.href = "/404"}>
+              <GlassButton variant="secondary" fullWidth onClick={() => window.location.href = "/technician"}>
                 Back to Home
               </GlassButton>
             </div>
