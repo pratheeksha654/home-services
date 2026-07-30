@@ -25,8 +25,13 @@ export default function SignUpForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [gender, setGender] = useState("");
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,7 +40,18 @@ export default function SignUpForm() {
     setError("");
     setIsSubmitting(true);
 
-    const result = await signup({ name, email, phone, password, confirmPassword });
+    const result = await signup({
+      name,
+      email,
+      phone,
+      gender,
+      street,
+      city,
+      postalCode,
+      password,
+      confirmPassword,
+    });
+
     if (!result.success) {
       setError(result.error || "Signup failed.");
       setIsSubmitting(false);
@@ -43,10 +59,9 @@ export default function SignUpForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-[420px] mx-auto lg:mx-0">
-      {/* ── Header ────────────────────────────────────────────── */}
+    <form onSubmit={handleSubmit} className="w-full max-w-[460px] mx-auto lg:mx-0">
+      {/* Header */}
       <div className="space-y-4 mb-6">
-        {/* Mobile-only logo (hidden on desktop where HeroPanel shows it) */}
         <div className="lg:hidden animate-fade-in-up">
           <BrandLogo size="md" variant="gold" />
         </div>
@@ -61,15 +76,15 @@ export default function SignUpForm() {
         </div>
       </div>
 
-      {/* ── Error Alert ────────────────────────────────────────── */}
+      {/* Error Alert */}
       {error && (
         <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400 animate-fade-in-up">
           {error}
         </div>
       )}
 
-      {/* ── Form Fields ───────────────────────────────────────── */}
-      <div className="space-y-4 animate-fade-in-up-delay-2">
+      {/* Form Fields */}
+      <div className="space-y-3 animate-fade-in-up-delay-2 max-h-[60vh] overflow-y-auto pr-1">
         <GlassInput
           id="full-name"
           label="Full Name"
@@ -90,17 +105,65 @@ export default function SignUpForm() {
           onChange={(e) => setEmail(e.target.value)}
         />
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <GlassInput
+            id="phone-number"
+            label="Phone Number"
+            type="tel"
+            placeholder="+1 (555) 000-0000"
+            icon={<PhoneIcon />}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+
+          <div>
+            <label className="block text-xs font-medium text-text-secondary mb-1">
+              Gender
+            </label>
+            <select
+              id="gender"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className="w-full bg-[#14161E]/80 border border-[rgba(255,255,255,0.1)] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
+            >
+              <option value="" className="bg-[#10121A]">Select Gender</option>
+              <option value="Female" className="bg-[#10121A]">Female</option>
+              <option value="Male" className="bg-[#10121A]">Male</option>
+              <option value="Other" className="bg-[#10121A]">Other</option>
+            </select>
+          </div>
+        </div>
+
         <GlassInput
-          id="phone-number"
-          label="Phone Number"
-          type="tel"
-          placeholder="+1 (555) 000-0000"
-          icon={<PhoneIcon />}
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          id="street-address"
+          label="Street Address"
+          type="text"
+          placeholder="123 Main St"
+          value={street}
+          onChange={(e) => setStreet(e.target.value)}
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <GlassInput
+            id="city"
+            label="City"
+            type="text"
+            placeholder="New York"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+          />
+
+          <GlassInput
+            id="postal-code"
+            label="Postal Code"
+            type="text"
+            placeholder="576101"
+            value={postalCode}
+            onChange={(e) => setPostalCode(e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <GlassInput
             id="password"
             label="Password"
@@ -120,17 +183,15 @@ export default function SignUpForm() {
             placeholder="••••••••"
             icon={<LockIcon />}
             rightIcon={showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
-            onRightIconClick={() =>
-              setShowConfirmPassword(!showConfirmPassword)
-            }
+            onRightIconClick={() => setShowConfirmPassword(!showConfirmPassword)}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
         </div>
       </div>
 
-      {/* ── Sign Up Button ────────────────────────────────────── */}
-      <div className="mt-6 animate-fade-in-up-delay-3">
+      {/* Sign Up Button */}
+      <div className="mt-5 animate-fade-in-up-delay-3">
         <GlassButton
           id="sign-up-button"
           variant="primary"
@@ -142,7 +203,7 @@ export default function SignUpForm() {
         </GlassButton>
       </div>
 
-      {/* ── Divider + Google ──────────────────────────────────── */}
+      {/* Divider + Google */}
       <div className="mt-4 space-y-3 animate-fade-in-up-delay-4">
         <Divider text="or continue with" />
 
@@ -150,6 +211,7 @@ export default function SignUpForm() {
           id="google-sign-up"
           variant="secondary"
           fullWidth
+          type="button"
           onClick={async () => {
             setError("");
             const res = await loginWithGoogle();
@@ -163,7 +225,7 @@ export default function SignUpForm() {
         </GlassButton>
       </div>
 
-      {/* ── Footer Link ───────────────────────────────────────── */}
+      {/* Footer Link */}
       <p className="text-center text-sm text-text-secondary mt-4 animate-fade-in-up-delay-5">
         Already have an account?{" "}
         <Link

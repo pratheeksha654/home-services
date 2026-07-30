@@ -44,7 +44,8 @@ function RoleBadge({ role }: { role: string }) {
     },
   };
 
-  const c = config[role] || config.CUSTOMER;
+  const normalizedKey = role ? role.toUpperCase().trim() : "CUSTOMER";
+  const c = config[normalizedKey] || config.CUSTOMER;
 
   return (
     <span
@@ -167,7 +168,9 @@ export default function Navbar() {
   }
 
   const isLoggedIn = Boolean(user);
-  const role = user?.role;
+
+  // Normalize role string so case mismatch never breaks link matching
+  const role = user?.role ? user.role.toUpperCase().trim() : null;
 
   // Extract avatar initials
   const initials = user?.name
@@ -179,7 +182,7 @@ export default function Navbar() {
       .toUpperCase()
     : user?.email?.charAt(0).toUpperCase() || "U";
 
-  // Render navigation links dynamically by role
+  // Render navigation links dynamically by normalized role
   const renderNavLinks = () => {
     if (role === "CUSTOMER") {
       return (
@@ -231,7 +234,7 @@ export default function Navbar() {
           <NavLink
             href="/technician/schedule"
             label="Schedule"
-            active={pathname.startsWith("/schedule")}
+            active={pathname.startsWith("/technician/schedule")}
           />
           <NavLink
             href="/earnings"
@@ -253,7 +256,10 @@ export default function Navbar() {
           <NavLink
             href="/coordinator/dashboard"
             label="Home"
-            active={pathname === "/coordinator/dashboard" || pathname === "/coordinator"}
+            active={
+              pathname === "/coordinator/dashboard" ||
+              pathname === "/coordinator"
+            }
           />
           <NavLink
             href="/coordinator/applications"
@@ -269,6 +275,7 @@ export default function Navbar() {
       );
     }
 
+    // Default fallback links for logged-in users with unassigned roles
     return (
       <>
         <NavLink href="/" label="Home" active={pathname === "/"} />
