@@ -44,7 +44,8 @@ export default function AuthCallbackPage() {
         const sessionUser = data.data.user;
         setSession(sessionUser, accessToken);
 
-        if (!sessionUser.onboardingCompleted) {
+        const isSpecialRole = sessionUser.role === "COORDINATOR" || sessionUser.role === "ADMIN";
+        if (!sessionUser.onboardingCompleted && !isSpecialRole) {
           router.push("/onboarding/details");
         } else {
           router.push(getRoleBasedRoute(sessionUser.role));

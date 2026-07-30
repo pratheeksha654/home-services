@@ -26,10 +26,11 @@ export default function AuthGuard({ children, guestOnly = false }: AuthGuardProp
 
     if (guestOnly && user) {
       // Authenticated user on a guest-only page → go to dashboard or onboarding
-      if (!user.onboardingCompleted) {
+      const isSpecialRole = user.role === "COORDINATOR" || user.role === "ADMIN";
+      if (!user.onboardingCompleted && !isSpecialRole) {
         router.replace("/onboarding/details");
       } else {
-        router.replace("/dashboard");
+        router.replace(user.role ? (user.role === "COORDINATOR" || user.role === "ADMIN" ? "/coordinator/dashboard" : "/dashboard") : "/dashboard");
       }
     } else if (!guestOnly && !user) {
       // Unauthenticated user on a protected page → go to login
@@ -37,8 +38,9 @@ export default function AuthGuard({ children, guestOnly = false }: AuthGuardProp
     } else if (!guestOnly && user) {
       // Authenticated user — enforce onboarding funnel
       const isOnboardingPage = ONBOARDING_ROUTES.some((r) => pathname === r || pathname.startsWith(r));
+      const isSpecialRole = user.role === "COORDINATOR" || user.role === "ADMIN";
 
-      if (!user.onboardingCompleted && !isOnboardingPage) {
+      if (!user.onboardingCompleted && !isOnboardingPage && !isSpecialRole) {
         // Not yet onboarded and not already on an onboarding page → redirect
         router.replace("/onboarding/details");
       }

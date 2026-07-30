@@ -197,7 +197,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(sessionUser);
         saveSession(sessionUser, token);
 
-        if (!sessionUser.onboardingCompleted) {
+        const isSpecialRole = sessionUser.role === "COORDINATOR" || sessionUser.role === "ADMIN";
+        if (!sessionUser.onboardingCompleted && !isSpecialRole) {
           router.push("/onboarding/details");
         } else {
           router.push(getRoleBasedRoute(sessionUser.role));
@@ -287,7 +288,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(sessionUser);
         saveSession(sessionUser, token);
 
-        if (!sessionUser.onboardingCompleted) {
+        const isSpecialRole = sessionUser.role === "COORDINATOR" || sessionUser.role === "ADMIN";
+        if (!sessionUser.onboardingCompleted && !isSpecialRole) {
           router.push("/onboarding/details");
         } else {
           router.push(getRoleBasedRoute(sessionUser.role));

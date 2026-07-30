@@ -97,9 +97,10 @@ export default function DetailsFormPage() {
   const { user, isLoading, setUserProfile } = useAuth();
   const router = useRouter();
 
-  // Redirect already-registered users to their role-based home page
+  // Redirect already-registered or coordinator/admin users to their role-based home page
   useEffect(() => {
-    if (!isLoading && user?.onboardingCompleted) {
+    const isSpecialRole = user?.role === "COORDINATOR" || user?.role === "ADMIN";
+    if (!isLoading && (user?.onboardingCompleted || isSpecialRole)) {
       router.replace(getRoleBasedRoute(user.role));
     }
   }, [isLoading, user, router]);
