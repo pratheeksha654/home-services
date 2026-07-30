@@ -3,57 +3,96 @@
 "use client";
 
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
+import { Sparkles, CheckCircle2, Clock } from "lucide-react";
+import GlassButton from "@/components/ui/GlassButton";
 
 export default function TechnicianPendingPage() {
+  const { user } = useAuth();
+  const isApproved = user?.role === "TECHNICIAN";
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#0D0F14] px-4">
-      <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-[#151922] p-8 text-center">
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#C8A55E]/20">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-10 w-10 text-[#C8A55E]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 12l2 2 4-4m6 2A9 9 0 1112 3a9 9 0 019 9z"
-            />
-          </svg>
-        </div>
+    <main className="flex min-h-screen items-center justify-center bg-void px-4 text-text-primary">
+      <div className="relative w-full max-w-xl rounded-3xl border border-border bg-surface p-8 text-center shadow-2xl overflow-hidden">
+        <div className="absolute -top-24 -left-20 h-80 w-80 rounded-full bg-gold-glow blur-[140px] pointer-events-none" />
 
-        <h1 className="text-3xl font-bold text-white">
-          Application Submitted
-        </h1>
+        {isApproved ? (
+          <>
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-green-500/10 border border-green-500/20">
+              <CheckCircle2 className="h-10 w-10 text-green-400" />
+            </div>
 
-        <p className="mt-4 text-gray-400">
-          Thank you for applying to become a FixNest technician.
-        </p>
+            <div className="flex items-center justify-center gap-1 text-[10px] font-extrabold uppercase tracking-widest text-gold mb-3">
+              <Sparkles size={12} />
+              <span>Congratulations</span>
+            </div>
 
-        <div className="mt-8 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-5">
-          <p className="text-sm uppercase tracking-wider text-yellow-400">
-            Application Status
-          </p>
+            <h1 className="text-3xl font-black font-heading text-text-primary">
+              Application Approved!
+            </h1>
 
-          <h2 className="mt-2 text-2xl font-semibold text-yellow-300">
-            Pending Approval
-          </h2>
+            <p className="mt-4 text-text-secondary text-sm">
+              Welcome to the team! Your technician application has been reviewed and approved by the coordinator.
+            </p>
 
-          <p className="mt-3 text-gray-300">
-            Your application has been successfully submitted and is
-            awaiting review by our dispatcher team.
-          </p>
+            <div className="mt-8 rounded-2xl border border-green-500/20 bg-green-500/5 p-6 text-left">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-green-400 block mb-1">
+                Account Status
+              </span>
+              <h2 className="text-xl font-bold font-heading text-green-400">
+                Active Technician
+              </h2>
+              <p className="mt-3 text-sm text-text-secondary leading-relaxed">
+                You now have full access to our technician platform. You can start receiving service request assignments and managing bookings.
+              </p>
+            </div>
 
-          <p className="mt-2 text-gray-400">
-            You'll be able to access the Technician Dashboard once your
-            application has been approved.
-          </p>
-        </div>
+            <div className="mt-8">
+              <GlassButton variant="primary" fullWidth onClick={() => window.location.href = "/"}>
+                Go to Home
+              </GlassButton>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-yellow-500/10 border border-yellow-500/20">
+              <Clock className="h-10 w-10 text-yellow-400" />
+            </div>
 
-        
+            <div className="flex items-center justify-center gap-1 text-[10px] font-extrabold uppercase tracking-widest text-gold mb-3">
+              <span>Status Check</span>
+            </div>
+
+            <h1 className="text-3xl font-black font-heading text-text-primary">
+              Application Submitted
+            </h1>
+
+            <p className="mt-4 text-text-secondary text-sm">
+              Thank you for applying to become a FixNest technician.
+            </p>
+
+            <div className="mt-8 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 p-6 text-left">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-yellow-400 block mb-1">
+                Application Status
+              </span>
+              <h2 className="text-xl font-bold font-heading text-yellow-400">
+                Pending Approval
+              </h2>
+              <p className="mt-3 text-sm text-text-secondary leading-relaxed">
+                Your application has been successfully submitted and is awaiting review by our coordinator.
+              </p>
+              <p className="mt-2 text-xs text-text-muted">
+                You will be able to access the platform once a coordinator reviews and approves your submission.
+              </p>
+            </div>
+
+            <div className="mt-8">
+              <GlassButton variant="secondary" fullWidth onClick={() => window.location.href = "/"}>
+                Back to Home
+              </GlassButton>
+            </div>
+          </>
+        )}
       </div>
     </main>
   );

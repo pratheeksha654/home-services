@@ -5,6 +5,7 @@ import {
   UserPlus,
   CalendarDays,
   ClipboardList,
+  UserCheck,
 } from "lucide-react";
 
 import QuickActionCard from "./QuickActionCard";
@@ -42,6 +43,14 @@ const actions = [
     icon: ClipboardList,
     color: "bg-green-600",
   },
+  {
+    title: "Technician Applications",
+    description:
+      "Review, approve or reject pending technician registration forms.",
+    href: "/coordinator/applications",
+    icon: UserCheck,
+    color: "bg-purple-600",
+  },
 ];
 
 export default function QuickActions() {
@@ -56,7 +65,7 @@ export default function QuickActions() {
         Quickly navigate to frequently used coordinator tools.
       </p>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+      <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 
         {actions.map((action) => (
           <QuickActionCard

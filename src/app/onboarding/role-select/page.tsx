@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, UserRole } from "@/context/AuthContext";
+import { useAuth, UserRole, getRoleBasedRoute } from "@/context/AuthContext";
 import AuthGuard from "@/components/auth/AuthGuard";
 
 /* ── Step Indicator ─────────────────────────────────────────────── */
@@ -189,10 +189,17 @@ function RoleCard({
 
 /* ── Inner Content Component ────────────────────────────────────── */
 function RoleSelectContent() {
-  const { setRole, completeOnboarding } = useAuth();
+  const { user, isLoading, setRole, completeOnboarding } = useAuth();
   const router = useRouter();
   const [selected, setSelected] = useState<"CUSTOMER" | "TECHNICIAN_PENDING" | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Redirect already-registered users to their role-based home page
+  useEffect(() => {
+    if (!isLoading && user?.onboardingCompleted) {
+      router.replace(getRoleBasedRoute(user.role));
+    }
+  }, [isLoading, user, router]);
 
   const handleSelect = async (role: "CUSTOMER" | "TECHNICIAN_PENDING") => {
     if (loading) return;

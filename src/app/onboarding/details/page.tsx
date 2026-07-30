@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
 import AuthGuard from "@/components/auth/AuthGuard";
 
 /* ── Step Indicator ─────────────────────────────────────────────── */
@@ -95,8 +95,15 @@ function GenderTile({ value, label, icon, selected, onSelect }: {
 
 /* ── Page Content ───────────────────────────────────────────────── */
 function DetailsFormContent() {
-  const { user, setUserProfile } = useAuth();
+  const { user, isLoading, setUserProfile } = useAuth();
   const router = useRouter();
+
+  // Redirect already-registered users to their role-based home page
+  useEffect(() => {
+    if (!isLoading && user?.onboardingCompleted) {
+      router.replace(getRoleBasedRoute(user.role));
+    }
+  }, [isLoading, user, router]);
 
   const [form, setForm] = useState({ name: "", phone: "", age: "", gender: "", street: "", city: "", postalCode: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -163,10 +170,7 @@ function DetailsFormContent() {
       <div className="relative z-10 w-full max-w-2xl animate-fade-in-up">
 
         {/* Brand */}
-        <a href="/" className="inline-flex items-center gap-3 mb-8 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C8A55E] to-[#A08844] flex items-center justify-center font-bold text-lg text-[#08090D] font-outfit shadow-lg shadow-[#C8A55E]/20 group-hover:scale-105 transition-transform">F</div>
-          <span className="font-outfit font-bold text-xl text-[#ECEDF0] group-hover:text-[#E4D5A8] transition-colors">Field<span className="text-[#C8A55E]">Flow</span></span>
-        </a>
+
 
         <StepIndicator current={1} total={2} />
 
@@ -188,7 +192,7 @@ function DetailsFormContent() {
                 Let&apos;s get to know you
               </h1>
               <p className="mt-2 text-sm text-[#9CA0AE] font-inter leading-relaxed max-w-lg">
-                Complete your profile to personalise your FieldFlow experience. Takes less than 2 minutes.
+                Complete your profile to personalise your FixNest experience. Takes less than 2 minutes.
               </p>
             </div>
 
@@ -314,9 +318,7 @@ function DetailsFormContent() {
           </div>
         </div>
 
-        <p className="mt-6 text-center text-[11px] text-[#3E4252] font-inter">
-          🔒 Your information is stored locally and never shared with third parties.
-        </p>
+
       </div>
     </div>
   );

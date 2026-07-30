@@ -18,7 +18,7 @@ import {
 } from "@/components/icons/Icons";
 
 export default function SignUpForm() {
-  const { signup } = useAuth();
+  const { signup, loginWithGoogle } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -150,7 +150,13 @@ export default function SignUpForm() {
           id="google-sign-up"
           variant="secondary"
           fullWidth
-          onClick={() => { }}
+          onClick={async () => {
+            setError("");
+            const res = await loginWithGoogle();
+            if (res && !res.success) {
+              setError(res.error || "Failed to initiate Google sign up");
+            }
+          }}
         >
           <GoogleIcon size={18} />
           <span>Continue with Google</span>
