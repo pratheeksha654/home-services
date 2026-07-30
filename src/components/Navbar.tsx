@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
 import Image from "next/image";
 
 /* ── Role Badge Component ────────────────────────────────────────── */
@@ -292,7 +292,7 @@ export default function Navbar() {
         {/* ================= LEFT: BRAND LOGO ================= */}
         <div className="flex items-center gap-3">
           <Link
-            href="/"
+            href={isLoggedIn && role ? getRoleBasedRoute(role) : "/signup"}
             className="flex items-center gap-2.5 group flex-shrink-0"
           >
             <Image

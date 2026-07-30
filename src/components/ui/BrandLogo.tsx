@@ -1,15 +1,23 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
 
 interface BrandLogoProps {
   size?: "sm" | "md" | "lg";
   variant?: "light" | "gold";
+  href?: string;
 }
 
 export default function BrandLogo({
   size = "md",
   variant = "gold",
+  href,
 }: BrandLogoProps) {
+  const { user } = useAuth();
+  const targetHref = href || (user?.role ? getRoleBasedRoute(user.role) : "/signup");
+
   // Mapping sizes for flexibility if needed
   const logoDimensions = {
     sm: { width: 100, height: 40 },
@@ -21,7 +29,7 @@ export default function BrandLogo({
 
   return (
     <div className="flex items-center gap-2.5">
-      <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
+      <Link href={targetHref} className="flex items-center gap-2.5 group flex-shrink-0">
         <Image
           src="/logo2.png"
           alt="FixNest Logo"
