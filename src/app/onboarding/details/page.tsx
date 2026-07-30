@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
-import AuthGuard from "@/components/auth/AuthGuard";
 
 /* ── Step Indicator ─────────────────────────────────────────────── */
 function StepIndicator({ current, total }: { current: number; total: number }) {
@@ -94,7 +93,7 @@ function GenderTile({ value, label, icon, selected, onSelect }: {
 }
 
 /* ── Page Content ───────────────────────────────────────────────── */
-function DetailsFormContent() {
+export default function DetailsFormPage() {
   const { user, isLoading, setUserProfile } = useAuth();
   const router = useRouter();
 
@@ -144,16 +143,25 @@ function DetailsFormContent() {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
+
     setSubmitting(true);
-    setUserProfile({
+
+    // Await API response to complete before redirecting
+    const res = await setUserProfile({
       name: form.name.trim(),
       phone: form.phone.trim(),
       age: form.age.trim(),
       gender: form.gender,
       address: { street: form.street.trim(), city: form.city.trim(), postalCode: form.postalCode.trim() },
     });
-    await new Promise(r => setTimeout(r, 350));
-    router.push("/onboarding/role-select");
+
+    setSubmitting(false);
+
+    if (res.success) {
+      router.push("/onboarding/role-select");
+    } else {
+      alert(res.error || "Failed to save profile details. Please try again.");
+    }
   };
 
   return (
@@ -168,9 +176,6 @@ function DetailsFormContent() {
       />
 
       <div className="relative z-10 w-full max-w-2xl animate-fade-in-up">
-
-        {/* Brand */}
-
 
         <StepIndicator current={1} total={2} />
 
@@ -198,7 +203,7 @@ function DetailsFormContent() {
 
             <form onSubmit={handleSubmit} className="space-y-6" noValidate>
 
-              {/* 1. Full Name (Full Width for clarity) */}
+              {/* Full Name */}
               <div>
                 <FieldLabel label="Full Name" required />
                 <input id="ob-name" type="text" autoComplete="name" placeholder="Jane Doe"
@@ -207,7 +212,7 @@ function DetailsFormContent() {
                 {errors.name && <p className="mt-1.5 text-xs text-rose-400 font-inter">{errors.name}</p>}
               </div>
 
-              {/* 2. Email Address (Full Width Read-Only) */}
+              {/* Email Address */}
               <div>
                 <FieldLabel label="Email Address" hint="Cannot be changed after registration" />
                 <div className="relative">
@@ -222,7 +227,7 @@ function DetailsFormContent() {
                 </div>
               </div>
 
-              {/* 3. Phone Number + Age (Spacious 2-Column Grid) */}
+              {/* Phone + Age */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <FieldLabel label="Phone Number" />
@@ -230,100 +235,67 @@ function DetailsFormContent() {
                     className={inputCls}
                     value={form.phone} onChange={e => set("phone", e.target.value)} />
                 </div>
-
                 <div>
                   <FieldLabel label="Age" required />
-                  <input id="ob-age" type="number" min="1" max="120" placeholder="e.g. 25"
+                  <input id="ob-age" type="number" min="1" max="120" placeholder="25"
                     className={`${inputCls} ${errors.age ? inputErr : ""}`}
                     value={form.age} onChange={e => set("age", e.target.value)} />
                   {errors.age && <p className="mt-1.5 text-xs text-rose-400 font-inter">{errors.age}</p>}
                 </div>
               </div>
 
-              {/* 4. Gender Tiles Section */}
+              {/* Gender */}
               <div>
                 <FieldLabel label="Gender" required />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
-                  {[
-                    { value: "Male", label: "Male", icon: "♂" },
-                    { value: "Female", label: "Female", icon: "♀" },
-                    { value: "Other", label: "Other", icon: "✦" },
-                  ].map(opt => (
-                    <GenderTile key={opt.value} {...opt}
-                      selected={form.gender === opt.value}
-                      onSelect={() => { set("gender", opt.value); }} />
-                  ))}
+                <div className="grid grid-cols-3 gap-3">
+                  <GenderTile value="male" label="Male" icon="👨" selected={form.gender === "male"} onSelect={() => set("gender", "male")} />
+                  <GenderTile value="female" label="Female" icon="👩" selected={form.gender === "female"} onSelect={() => set("gender", "female")} />
+                  <GenderTile value="other" label="Other" icon="🧑" selected={form.gender === "other"} onSelect={() => set("gender", "other")} />
                 </div>
-                {errors.gender && <p className="mt-2 text-xs text-rose-400 font-inter">{errors.gender}</p>}
+                {errors.gender && <p className="mt-1.5 text-xs text-rose-400 font-inter">{errors.gender}</p>}
               </div>
 
-              {/* Section Divider */}
-              <div className="flex items-center gap-4 py-2">
-                <div className="flex-1 h-px bg-[rgba(255,255,255,0.06)]" />
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#3E4252] font-inter">Address Details</span>
-                <div className="flex-1 h-px bg-[rgba(255,255,255,0.06)]" />
-              </div>
-
-              {/* 5. Street Address */}
-              <div>
-                <FieldLabel label="Street Address" required />
-                <input id="ob-street" type="text" autoComplete="street-address" placeholder="123 Main Street, Apt 4B"
-                  className={`${inputCls} ${errors.street ? inputErr : ""}`}
-                  value={form.street} onChange={e => set("street", e.target.value)} />
-                {errors.street && <p className="mt-1.5 text-xs text-rose-400 font-inter">{errors.street}</p>}
-              </div>
-
-              {/* 6. City + Postal Code (Spacious 2-Column Grid) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* Address */}
+              <div className="space-y-4 pt-2 border-t border-[rgba(255,255,255,0.06)]">
                 <div>
-                  <FieldLabel label="City" required />
-                  <input id="ob-city" type="text" autoComplete="address-level2" placeholder="Mumbai"
-                    className={`${inputCls} ${errors.city ? inputErr : ""}`}
-                    value={form.city} onChange={e => set("city", e.target.value)} />
-                  {errors.city && <p className="mt-1.5 text-xs text-rose-400 font-inter">{errors.city}</p>}
+                  <FieldLabel label="Street Address" required />
+                  <input id="ob-street" type="text" placeholder="123 Main Street, Apt 4B"
+                    className={`${inputCls} ${errors.street ? inputErr : ""}`}
+                    value={form.street} onChange={e => set("street", e.target.value)} />
+                  {errors.street && <p className="mt-1.5 text-xs text-rose-400 font-inter">{errors.street}</p>}
                 </div>
-                <div>
-                  <FieldLabel label="Postal Code" required />
-                  <input id="ob-postal" type="text" autoComplete="postal-code" placeholder="400001"
-                    className={`${inputCls} ${errors.postalCode ? inputErr : ""}`}
-                    value={form.postalCode} onChange={e => set("postalCode", e.target.value)} />
-                  {errors.postalCode && <p className="mt-1.5 text-xs text-rose-400 font-inter">{errors.postalCode}</p>}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <FieldLabel label="City" required />
+                    <input id="ob-city" type="text" placeholder="Mumbai"
+                      className={`${inputCls} ${errors.city ? inputErr : ""}`}
+                      value={form.city} onChange={e => set("city", e.target.value)} />
+                    {errors.city && <p className="mt-1.5 text-xs text-rose-400 font-inter">{errors.city}</p>}
+                  </div>
+                  <div>
+                    <FieldLabel label="Postal Code" required />
+                    <input id="ob-postal" type="text" placeholder="400001"
+                      className={`${inputCls} ${errors.postalCode ? inputErr : ""}`}
+                      value={form.postalCode} onChange={e => set("postalCode", e.target.value)} />
+                    {errors.postalCode && <p className="mt-1.5 text-xs text-rose-400 font-inter">{errors.postalCode}</p>}
+                  </div>
                 </div>
               </div>
 
               {/* Submit Button */}
-              <div className="pt-4">
-                <button id="ob-submit" type="submit" disabled={submitting}
-                  className="relative group w-full overflow-hidden flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] text-[#08090D] font-semibold font-inter text-sm shadow-lg shadow-[#C8A55E]/25 hover:shadow-xl hover:shadow-[#C8A55E]/35 transition-all duration-300 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed">
-                  <div className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
-                  {submitting ? (
-                    <>
-                      <svg className="w-4 h-4 animate-spin relative z-10" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      <span className="relative z-10">Saving…</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="relative z-10">Continue to Role Selection</span>
-                      <svg className="relative z-10 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                      </svg>
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-12 mt-4 rounded-xl bg-gradient-to-r from-[#C8A55E] to-[#A08844] text-[#08090D] font-bold font-outfit text-sm transition-all duration-200 hover:opacity-95 focus:outline-none focus:ring-4 focus:ring-[#C8A55E]/20 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {submitting ? "Saving details..." : "Continue to Next Step →"}
+              </button>
+
             </form>
           </div>
         </div>
-
-
       </div>
     </div>
   );
-}
-
-export default function OnboardingDetailsPage() {
-  return <AuthGuard><DetailsFormContent /></AuthGuard>;
 }

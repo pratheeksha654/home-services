@@ -39,6 +39,18 @@ export interface ProfileData {
   address: UserAddress;
 }
 
+export interface SignupData {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirmPassword: string;
+  gender?: string;
+  street?: string;
+  city?: string;
+  postalCode?: string;
+}
+
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
@@ -48,17 +60,10 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   getToken: () => string | null;
   setSession: (user: User, token: string) => void;
-  setUserProfile: (data: ProfileData) => void;
-  setRole: (role: UserRole) => void;
-  completeOnboarding: () => void;
-}
-
-export interface SignupData {
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
+  fetchProfile: () => Promise<User | null>; // <--- Added fetchProfile here
+  setUserProfile: (data: ProfileData) => Promise<{ success: boolean; error?: string }>;
+  setRole: (role: UserRole) => Promise<{ success: boolean; error?: string }>;
+  completeOnboarding: () => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -69,21 +74,20 @@ const STORAGE_TOKEN_KEY = "homefixpro_token";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
-/** Return the correct home page for a given role */
 export function getRoleBasedRoute(role?: string): string {
   switch (role?.toUpperCase()) {
     case "ADMIN":
-      return "/coordinator/dashboard"; // admin shares coordinator dashboard
+      return "/coordinator/dashboard";
     case "COORDINATOR":
       return "/coordinator/dashboard";
     case "CUSTOMER":
       return "/customer";
     case "TECHNICIAN":
-      return "/technician";
+      return "/technician/pending";
     case "TECHNICIAN_PENDING":
       return "/technician/pending";
     default:
-      return "/customer"; // safe fallback
+      return "/customer";
   }
 }
 
@@ -101,17 +105,19 @@ function saveSession(user: User, token: string) {
   localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(user));
   if (token) {
     localStorage.setItem(STORAGE_TOKEN_KEY, token);
+    localStorage.setItem("token", token);
   }
 }
 
 function clearSession() {
   localStorage.removeItem(STORAGE_SESSION_KEY);
   localStorage.removeItem(STORAGE_TOKEN_KEY);
+  localStorage.removeItem("token");
 }
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(STORAGE_TOKEN_KEY);
+  return localStorage.getItem("token") || localStorage.getItem(STORAGE_TOKEN_KEY);
 }
 
 /* ── Provider ───────────────────────────────────────────────────── */
@@ -120,12 +126,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Hydrate session on mount
+  /** Fetch latest profile directly from Backend (GET /users/profile) */
+  const fetchProfile = useCallback(async (): Promise<User | null> => {
+    const token = getToken();
+    if (!token) {
+      setIsLoading(false);
+      return null;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/users/profile`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const resData = await res.json();
+      if (res.ok && resData.success) {
+        const fetchedUser: User = resData.data.user || resData.data;
+        setUser(fetchedUser);
+        saveSession(fetchedUser, token);
+        return fetchedUser;
+      }
+    } catch (err) {
+      console.error("Error fetching user profile from server:", err);
+    } finally {
+      setIsLoading(false);
+    }
+    return null;
+  }, []);
+
   useEffect(() => {
     const session = getStoredSession();
-    if (session) setUser(session);
-    setIsLoading(false);
-  }, []);
+    if (session) {
+      setUser(session);
+    }
+    // Pull fresh data from backend on mount
+    fetchProfile();
+  }, [fetchProfile]);
 
   const login = useCallback(
     async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
@@ -138,9 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await fetch(`${API_URL}/auth/login`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: trimmedEmail, password }),
         });
 
@@ -152,11 +190,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const sessionUser: User = data.data.user;
         const token = data.data.access_token;
-        
+
         setUser(sessionUser);
         saveSession(sessionUser, token);
 
-        // Route based on onboarding status & role
         if (!sessionUser.onboardingCompleted) {
           router.push("/onboarding/details");
         } else {
@@ -182,11 +219,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const dest = redirectTo || `${window.location.origin}/auth/callback`;
         const response = await fetch(`${API_URL}/auth/google?redirectTo=${encodeURIComponent(dest)}`);
         const data = await response.json();
-        
+
         if (!response.ok || !data.success || !data.data?.url) {
           return { success: false, error: data.message || "Failed to initiate Google sign in." };
         }
-        
+
         window.location.href = data.data.url;
         return { success: true };
       } catch (error) {
@@ -199,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = useCallback(
     async (data: SignupData): Promise<{ success: boolean; error?: string }> => {
-      const { name, email, phone, password, confirmPassword } = data;
+      const { name, email, phone, password, confirmPassword, gender, street, city, postalCode } = data;
       const trimmedEmail = email.trim().toLowerCase();
 
       if (!name.trim() || !trimmedEmail || !phone.trim() || !password) {
@@ -222,10 +259,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await fetch(`${API_URL}/auth/signup`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name: name.trim(), email: trimmedEmail, phone: phone.trim(), password }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim(),
+            email: trimmedEmail,
+            phone: phone.trim(),
+            password,
+            gender: gender || null,
+            street: street || null,
+            city: city || null,
+            postalCode: postalCode || null,
+          }),
         });
 
         const resData = await response.json();
@@ -236,7 +280,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const sessionUser: User = resData.data.user;
         const token = resData.data.access_token;
-        
+
         setUser(sessionUser);
         saveSession(sessionUser, token);
 
@@ -275,41 +319,106 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
-  /** Save profile details from Step 1 onboarding */
-  const setUserProfile = useCallback((data: ProfileData) => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      const updated: User = {
-        ...prev,
-        name: data.name,
-        phone: data.phone || prev.phone,
-        ageCategory: data.age,
-        gender: data.gender,
-        address: data.address,
-      };
-      saveSession(updated, getToken() || "");
-      return updated;
-    });
+  /** Save profile details to Backend */
+  const setUserProfile = useCallback(async (data: ProfileData): Promise<{ success: boolean; error?: string }> => {
+    const token = getToken();
+
+    try {
+      const res = await fetch(`${API_URL}/users/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify({
+          name: data.name,
+          phone: data.phone,
+          ageCategory: data.age,
+          gender: data.gender,
+          street: data.address?.street,
+          city: data.address?.city,
+          postalCode: data.address?.postalCode,
+        }),
+      });
+
+      const resData = await res.json();
+      if (!res.ok) {
+        return { success: false, error: resData.message || "Failed to save profile." };
+      }
+
+      setUser((prev) => {
+        if (!prev) return prev;
+        const updated: User = {
+          ...prev,
+          name: data.name,
+          phone: data.phone || prev.phone,
+          ageCategory: data.age,
+          gender: data.gender,
+          address: data.address,
+        };
+        saveSession(updated, token || "");
+        return updated;
+      });
+
+      return { success: true };
+    } catch (err: any) {
+      console.error("Error updating user profile on server:", err);
+      return { success: false, error: err.message || "Network error" };
+    }
   }, []);
 
-  /** Set user role (Step 2 onboarding) */
-  const setRole = useCallback((role: UserRole) => {
+  /** Save user role step to Backend */
+  const setRole = useCallback(async (role: UserRole): Promise<{ success: boolean; error?: string }> => {
+    const token = getToken();
+
     setUser((prev) => {
       if (!prev) return prev;
       const updated: User = { ...prev, role };
-      saveSession(updated, getToken() || "");
+      saveSession(updated, token || "");
       return updated;
     });
+
+    try {
+      await fetch(`${API_URL}/users/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify({ role }),
+      });
+    } catch (err) {
+      console.error("Error setting user role on server:", err);
+    }
+
+    return { success: true };
   }, []);
 
-  /** Mark onboarding as complete */
-  const completeOnboarding = useCallback(() => {
+  /** Complete onboarding step in Backend */
+  const completeOnboarding = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    const token = getToken();
+
     setUser((prev) => {
       if (!prev) return prev;
       const updated: User = { ...prev, onboardingCompleted: true };
-      saveSession(updated, getToken() || "");
+      saveSession(updated, token || "");
       return updated;
     });
+
+    try {
+      await fetch(`${API_URL}/users/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify({ onboardingCompleted: true }),
+      });
+    } catch (err) {
+      console.error("Error marking onboarding complete on server:", err);
+    }
+
+    return { success: true };
   }, []);
 
   return (
@@ -323,6 +432,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         getToken,
         setSession,
+        fetchProfile,
         setUserProfile,
         setRole,
         completeOnboarding,
