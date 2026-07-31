@@ -35,7 +35,8 @@ export default function BrandLogo({
           alt="FixNest Logo"
           width={width}
           height={height}
-          className="object-contain mix-blend-screen"
+          priority
+          className="object-contain mix-blend-screen h-auto"
         />
       </Link>
     </div>

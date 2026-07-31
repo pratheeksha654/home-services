@@ -63,19 +63,20 @@ const isMatchingTechnician = (
   technicianSkill: string,
   serviceCategory: string
 ) => {
+  if (!technicianSkill || !serviceCategory) return false;
   const skill = technicianSkill.toLowerCase();
   const category = serviceCategory.toLowerCase();
 
-  if (category.includes("paint")) return skill.includes("paint");
-  if (category.includes("carpent")) return skill.includes("carpent");
-  if (category.includes("clean")) return skill.includes("clean");
-  if (category.includes("plumb")) return skill.includes("plumb");
-  if (category.includes("electric")) return skill.includes("electric");
-  if (category.includes("ac")) return skill.includes("ac");
-  if (category.includes("appliance")) return skill.includes("appliance");
-  if (category.includes("pest")) return skill.includes("pest");
+  if (category.includes("paint") && skill.includes("paint")) return true;
+  if (category.includes("carpent") && skill.includes("carpent")) return true;
+  if ((category.includes("clean") || category.includes("housekeeping")) && (skill.includes("clean") || skill.includes("housekeeping") || skill.includes("maid"))) return true;
+  if (category.includes("plumb") && skill.includes("plumb")) return true;
+  if ((category.includes("electric") || category.includes("wiring")) && (skill.includes("electric") || skill.includes("wiring"))) return true;
+  if ((category.includes("ac") || category.includes("cool") || category.includes("air")) && (skill.includes("ac") || skill.includes("cool") || skill.includes("air") || skill.includes("hvac"))) return true;
+  if ((category.includes("appliance") || category.includes("fridge") || category.includes("washing") || category.includes("repair")) && (skill.includes("appliance") || skill.includes("fridge") || skill.includes("washing") || skill.includes("repair"))) return true;
+  if (category.includes("pest") && skill.includes("pest")) return true;
 
-  return skill.includes(category);
+  return skill.includes(category) || category.includes(skill);
 };
 
 
@@ -89,6 +90,61 @@ const isMatchingTechnician = (
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [selectedTechnicianId, setSelectedTechnicianId] = useState<string | null>(null);
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
+
+  // States for fetching technicians dynamically matching the category of the selected booking
+  const [modalTechnicians, setModalTechnicians] = useState<Technician[]>([]);
+  const [loadingModalTechs, setLoadingModalTechs] = useState<boolean>(false);
+  const [isFallbackList, setIsFallbackList] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!selectedBooking) {
+      setModalTechnicians([]);
+      setIsFallbackList(false);
+      return;
+    }
+
+    const fetchModalTechs = async () => {
+      setLoadingModalTechs(true);
+      setIsFallbackList(false);
+      try {
+        const category = selectedBooking.service_category;
+        const res = await fetch(`${backendUrl}/technicians?approval_status=Approved&availability=Available&skills=${encodeURIComponent(category)}`);
+        const data = await parseJsonResponse(res);
+
+        if (res.ok && data?.data?.technicians && data.data.technicians.length > 0) {
+          const uniqueTechsMap = new Map();
+          data.data.technicians.forEach((t: Technician) => {
+            if (t.technician_id) {
+              uniqueTechsMap.set(t.technician_id, t);
+            }
+          });
+          setModalTechnicians(Array.from(uniqueTechsMap.values()));
+        } else {
+          setIsFallbackList(true);
+          const allRes = await fetch(`${backendUrl}/technicians?approval_status=Approved&availability=Available`);
+          const allData = await parseJsonResponse(allRes);
+          if (allRes.ok && allData?.data?.technicians) {
+            const uniqueTechsMap = new Map();
+            allData.data.technicians.forEach((t: Technician) => {
+              if (t.technician_id) {
+                uniqueTechsMap.set(t.technician_id, t);
+              }
+            });
+            setModalTechnicians(Array.from(uniqueTechsMap.values()));
+          } else {
+            setModalTechnicians([]);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching modal technicians:", err);
+        setModalTechnicians([]);
+      } finally {
+        setLoadingModalTechs(false);
+      }
+    };
+
+    fetchModalTechs();
+  }, [selectedBooking]);
 
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -126,7 +182,13 @@ const isMatchingTechnician = (
       const techsData = await parseJsonResponse(techsRes);
 
       if (techsRes.ok && techsData?.data?.technicians) {
-        setAvailableTechnicians(techsData.data.technicians);
+        const uniqueTechsMap = new Map();
+        techsData.data.technicians.forEach((t: Technician) => {
+          if (t.technician_id) {
+            uniqueTechsMap.set(t.technician_id, t);
+          }
+        });
+        setAvailableTechnicians(Array.from(uniqueTechsMap.values()));
       } else {
         setAvailableTechnicians([]);
       }
@@ -445,55 +507,58 @@ const isMatchingTechnician = (
                   Select Available & Approved Technician
                 </label>
 
-                {availableTechnicians.length === 0 ? (
+                {loadingModalTechs ? (
+                  <div className="flex items-center justify-center py-8 gap-2 text-xs text-[#C8A55E]">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Fetching suitable technicians...
+                  </div>
+                ) : modalTechnicians.length === 0 ? (
                   <p className="text-xs text-rose-400 p-3 bg-rose-500/10 rounded-xl border border-rose-500/20">
                     No approved technicians are available right now. Please try again later or approve applications.
                   </p>
                 ) : (
-                  <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                    {availableTechnicians
- .filter((tech) =>
-  isMatchingTechnician(
-    tech.skills,
-    selectedBooking.service_category
-  )
-)
-  .map((tech) => {
-                      const isSelected = selectedTechnicianId === tech.technician_id;
-                      return (
-                        <div
-                          key={tech.technician_id}
-                          onClick={() => setSelectedTechnicianId(tech.technician_id)}
-                          className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                            isSelected
-                              ? "bg-[#C8A55E]/15 border-[#C8A55E] shadow-md shadow-[#C8A55E]/10"
-                              : "bg-[#14161E] border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                           
-                            <div>
-                              <h4 className="text-xs font-bold text-white">{tech.name}</h4>
-                              <p className="text-[11px] text-[#9CA0AE]">{tech.skills}</p>
-                             
+                  <div className="space-y-3">
+                    {isFallbackList && (
+                      <p className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl">
+                        ⚠️ No exact skill match for "{selectedBooking.service_category}". Showing all available technicians:
+                      </p>
+                    )}
+                    <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                      {modalTechnicians.map((tech) => {
+                        const isSelected = selectedTechnicianId === tech.technician_id;
+                        return (
+                          <div
+                            key={tech.technician_id}
+                            onClick={() => setSelectedTechnicianId(tech.technician_id)}
+                            className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                              isSelected
+                                ? "bg-[#C8A55E]/15 border-[#C8A55E] shadow-md shadow-[#C8A55E]/10"
+                                : "bg-[#14161E] border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div>
+                                <h4 className="text-xs font-bold text-white">{tech.name}</h4>
+                                <p className="text-[11px] text-[#9CA0AE]">{tech.skills}</p>
+                              </div>
                             </div>
-                          </div>
 
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold">
-                              {tech.availability}
-                            </span>
-                            <div
-                              className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs ${
-                                isSelected ? "bg-[#C8A55E] text-[#08090D] border-[#C8A55E]" : "border-[rgba(255,255,255,0.2)]"
-                              }`}
-                            >
-                              {isSelected && "✓"}
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold">
+                                {tech.availability}
+                              </span>
+                              <div
+                                className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs ${
+                                  isSelected ? "bg-[#C8A55E] text-[#08090D] border-[#C8A55E]" : "border-[rgba(255,255,255,0.2)]"
+                                }`}
+                              >
+                                {isSelected && "✓"}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
