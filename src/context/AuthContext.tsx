@@ -153,6 +153,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         saveSession(fetchedUser, token);
         return fetchedUser;
       }
+
+      if (res.status === 401) {
+        clearSession();
+        setUser(null);
+      }
     } catch (err) {
       console.error("Error fetching user profile from server:", err);
     } finally {

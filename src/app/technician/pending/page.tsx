@@ -9,7 +9,7 @@ import { Sparkles, CheckCircle2, Clock } from "lucide-react";
 import GlassButton from "@/components/ui/GlassButton";
 
 export default function TechnicianPendingPage() {
-  const { user, getToken } = useAuth();
+  const { user, getToken, fetchProfile } = useAuth();
   const router = useRouter();
   const isApproved = user?.role === "TECHNICIAN";
 
@@ -31,6 +31,8 @@ export default function TechnicianPendingPage() {
 
           if (nextStatus === "REJECTED") {
             router.replace("/technician/rejected");
+          } else if (nextStatus === "APPROVED") {
+            await fetchProfile();
           }
         }
       } catch (error) {
@@ -39,7 +41,9 @@ export default function TechnicianPendingPage() {
     };
 
     checkStatus();
-  }, [getToken, router, user?.id]);
+    const intervalId = setInterval(checkStatus, 5000);
+    return () => clearInterval(intervalId);
+  }, [fetchProfile, getToken, router, user?.id]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-void px-4 text-text-primary">

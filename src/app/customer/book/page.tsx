@@ -188,41 +188,59 @@ export default function BookingPage() {
         setStep(1);
     };
 
-    const handleSubmitBooking = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmitBooking = async (e?: React.FormEvent | React.MouseEvent) => {
+        if (e && typeof e.preventDefault === "function") {
+            e.preventDefault();
+        }
         setErrorMsg(null);
 
-        // Validation for all required fields
+        // Check Step 1 fields
+        if (!selectedService) {
+            setErrorMsg("Service Category is required. Please select a service.");
+            setStep(1);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
+        if (!issueDescription.trim()) {
+            setErrorMsg("Problem Description is required. Please describe your issue.");
+            setStep(1);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
+
+        // Check Step 2 fields
+        if (!bookingDate) {
+            setErrorMsg("Preferred Date is required. Please pick a date.");
+            setStep(2);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
+        if (!finalTimeSlot || !finalTimeSlot.trim()) {
+            setErrorMsg("Preferred Time slot is required. Please select or enter a time.");
+            setStep(2);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
+
+        // Check Step 3 fields
         if (!customerName.trim()) {
             setErrorMsg("Customer Name is required.");
+            window.scrollTo({ top: 0, behavior: "smooth" });
             return;
         }
         if (!phone.trim()) {
             setErrorMsg("Phone Number is required.");
+            window.scrollTo({ top: 0, behavior: "smooth" });
             return;
         }
         if (!email.trim()) {
             setErrorMsg("Email is required.");
-            return;
-        }
-        if (!selectedService) {
-            setErrorMsg("Service Category is required.");
-            return;
-        }
-        if (!issueDescription.trim()) {
-            setErrorMsg("Problem Description is required.");
+            window.scrollTo({ top: 0, behavior: "smooth" });
             return;
         }
         if (!address.street.trim() || !address.city.trim() || !address.postalCode.trim()) {
             setErrorMsg("Full Address (Street, City, Postal Code) is required.");
-            return;
-        }
-        if (!bookingDate) {
-            setErrorMsg("Preferred Date is required.");
-            return;
-        }
-        if (!finalTimeSlot.trim()) {
-            setErrorMsg("Preferred Time is required.");
+            window.scrollTo({ top: 0, behavior: "smooth" });
             return;
         }
 
@@ -500,7 +518,7 @@ export default function BookingPage() {
 
                         {/* STEP 3: CONTACT & ADDRESS */}
                         {step === 3 && (
-                            <form onSubmit={handleSubmitBooking}>
+                            <form id="booking-form" onSubmit={handleSubmitBooking}>
                                 <h2 className="text-xl font-semibold text-white font-outfit mb-4">
                                     Customer Contact & Service Address
                                 </h2>
@@ -614,7 +632,13 @@ export default function BookingPage() {
                         )}
 
                         {/* Navigation Controls */}
-                        <div className="mt-8 flex items-center justify-between pt-6 border-t border-[rgba(255,255,255,0.06)]">
+                        {errorMsg && (
+                            <div className="mt-6 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-center gap-2">
+                                <span>⚠️</span>
+                                <span>{errorMsg}</span>
+                            </div>
+                        )}
+                        <div className="mt-6 flex items-center justify-between pt-6 border-t border-[rgba(255,255,255,0.06)]">
                             {step > 1 ? (
                                 <button
                                     type="button"
@@ -637,12 +661,12 @@ export default function BookingPage() {
                                 </button>
                             ) : (
                                 <button
-                                    type="button"
-                                    onClick={handleSubmitBooking}
+                                    type="submit"
+                                    form="booking-form"
                                     disabled={isSubmitting}
                                     className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] text-[#08090D] font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all flex items-center gap-2"
                                 >
-                                    {isSubmitting ? "Submitting to Supabase..." : "Confirm & Submit Booking"}
+                                    {isSubmitting ? "Submitting..." : "Confirm & Submit Booking"}
                                 </button>
                             )}
                         </div>
