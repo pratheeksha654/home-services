@@ -124,19 +124,18 @@ export default function BookingPage() {
 
     // Auto-fill customer info & address from AuthContext when user profile loads
     useEffect(() => {
-        if (user) {
-            if (user.name) setCustomerName(user.name);
-            if (user.email) setEmail(user.email);
-            if (user.phone) setPhone(user.phone);
-            if (user.address) {
-                setAddress({
-                    street: user.address.street || user.address.streetAddress || "",
-                    city: user.address.city || "",
-                    postalCode: user.address.postalCode || user.address.zipCode || "",
-                });
-            }
-        }
-    }, [user]);
+    if (!user) return;
+
+    setCustomerName(user.name || "");
+    setEmail(user.email || "");
+    setPhone(user.phone || "");
+
+    setAddress({
+        street: user.street || "",
+        city: user.city || "",
+        postalCode: user.postalCode || "",
+    });
+}, [user]);
 
     const activeServiceObj = SERVICES.find((s) => s.id === selectedService);
     const finalTimeSlot = isCustomTime ? customTimeSlot : timeSlot;

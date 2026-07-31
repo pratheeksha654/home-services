@@ -121,7 +121,7 @@ export default function TechnicianPendingPage() {
             </div>
 
             <div className="mt-8">
-              <GlassButton variant="secondary" fullWidth onClick={() => window.location.href = "/technician"}>
+              <GlassButton variant="primary" fullWidth onClick={() => window.location.href = "/technician"}>
                 Back to Home
               </GlassButton>
             </div>

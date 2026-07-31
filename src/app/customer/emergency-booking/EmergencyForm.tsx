@@ -24,14 +24,14 @@ export default function EmergencyForm() {
   const customerEmail = user?.email?.trim() || "";
 
   const resolvedAddress = useMemo(() => {
-    const parts = [
-      user?.address?.street || user?.address?.streetAddress || "",
-      user?.address?.city || "",
-      user?.address?.postalCode || user?.address?.zipCode || "",
-    ].filter(Boolean);
+  const parts = [
+    user?.street || "",
+    user?.city || "",
+    user?.postalCode || "",
+  ].filter(Boolean);
 
-    return parts.join(", ") || "Bejai, Mangalore, Karnataka";
-  }, [user]);
+  return parts.join(", ") || "Bejai, Mangalore, Karnataka";
+}, [user]);
 
   const handleSubmit = async () => {
     if (!category.trim()) {
@@ -67,8 +67,8 @@ export default function EmergencyForm() {
           phoneNumber: customerPhone,
           name: customerName,
           problemDescription: problem,
-          street: user?.address?.street || user?.address?.streetAddress || "",
-          postalCode: user?.address?.postalCode || user?.address?.zipCode || "",
+          street: user?.street || "",
+          postalCode: user?.postalCode || "",
         }),
       });
 
@@ -250,8 +250,6 @@ export default function EmergencyForm() {
           rows={3}
 
           value={resolvedAddress}
-
-          onChange={(e) => setAddress(e.target.value)}
 
           readOnly
 
