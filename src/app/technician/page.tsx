@@ -140,7 +140,7 @@ export default function TechnicianDashboard() {
 
   // Schedule for selected date
   const selectedDateSchedule = jobs.filter(
-    (j) => !selectedStr || j.preferred_date === selectedStr || j.status === "Assigned" || j.status === "In Progress"
+    (j) => !selectedStr || j.preferred_date === selectedStr
   );
 
   const stats = [

@@ -9,6 +9,17 @@ interface Props {
   onReject?: (requestId: string) => void;
 }
 
+function matchesRequestCategory(
+  technician: Technician,
+  serviceCategory: EmergencyRequest["serviceCategory"]
+) {
+  if (serviceCategory === "Other") {
+    return technician.availabilityStatus === "Available";
+  }
+
+  return technician.serviceCategories.includes(serviceCategory);
+}
+
 export default function EmergencyRequestList({
   requests,
   technicians,
@@ -22,10 +33,8 @@ export default function EmergencyRequestList({
   return (
     <div className="mt-8 space-y-6">
       {requests.map((request) => {
-        // Filter technicians whose service categories include the request's category
-        // This is the matching logic — swap technicians from API when ready
         const matching = technicians.filter((tech) =>
-          tech.serviceCategories.includes(request.serviceCategory)
+          matchesRequestCategory(tech, request.serviceCategory)
         );
 
         return (
