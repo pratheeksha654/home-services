@@ -109,12 +109,12 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
     return () => clearInterval(interval);
   }, [resolvedParams.bookingId]);
 
-  // Redirect to home when completed
+  // Redirect to home when completed after 10 seconds (gives customer time to view completed state)
   useEffect(() => {
     if (tracking?.currentStatus === 'completed') {
       const timer = setTimeout(() => {
         router.push('/');
-      }, 3000);
+      }, 10000);
       return () => clearTimeout(timer);
     }
   }, [tracking?.currentStatus, router]);
@@ -391,10 +391,19 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
 
             {/* Completed Badge */}
             {tracking.currentStatus === 'completed' && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-3xl p-5 text-center">
-                <PartyPopper className="w-10 h-10 text-green-400 mx-auto mb-2" />
-                <p className="text-white font-semibold text-lg">Service Completed!</p>
-                <p className="text-green-300/70 text-sm mt-1">Thank you for using HomeFixPro.</p>
+              <div className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 border border-emerald-500/40 rounded-3xl p-6 text-center text-white shadow-2xl shadow-emerald-950/60">
+                <PartyPopper className="w-12 h-12 text-emerald-400 mx-auto mb-3 animate-bounce" />
+                <h4 className="text-xl font-bold text-white font-outfit">Service Completed!</h4>
+                <p className="text-xs text-emerald-200/80 mt-1 mb-5">
+                  Thank you for using HomeFixPro. Your service has been completed and verified.
+                </p>
+                <button
+                  onClick={() => router.push('/')}
+                  className="w-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-400 text-black font-bold py-3 px-6 rounded-2xl text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <Sparkles size={16} />
+                  <span>Return to Home</span>
+                </button>
               </div>
             )}
 

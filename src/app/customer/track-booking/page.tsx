@@ -37,11 +37,11 @@ export default function TrackBookingSelectionPage() {
           return;
         }
 
-        // 2. Filter bookings: must belong to current customer and status must be Assigned or In Progress
+        // 2. Filter bookings: must belong to current customer and status must be Assigned, In Progress, or Completed
         const userEmail = user.email?.trim().toLowerCase();
         const activeUserBookings = bookingsData.data.bookings.filter((b: any) => {
           const emailMatch = b.email?.trim().toLowerCase() === userEmail;
-          const statusMatch = b.status === 'Assigned' || b.status === 'In Progress';
+          const statusMatch = b.status === 'Assigned' || b.status === 'In Progress' || b.status === 'Completed';
           return emailMatch && statusMatch;
         });
 
