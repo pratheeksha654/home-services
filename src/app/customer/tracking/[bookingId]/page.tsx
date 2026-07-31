@@ -317,73 +317,76 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
           {/* Right Column */}
           <div className="space-y-5">
             
-            {/* Interactive Arrival Confirmation Card when Reached */}
-            {tracking.currentStatus === 'reached' && (
+            {/* Service Completion Prompt - Shows whenever technician requests completion */}
+            {tracking.completionRequested && tracking.currentStatus !== 'completed' ? (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 border border-emerald-500/40 rounded-3xl p-6 text-center text-white shadow-2xl shadow-emerald-950/60 relative overflow-hidden"
+                className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 border border-indigo-500/40 rounded-3xl p-6 text-center text-white shadow-2xl shadow-indigo-950/60"
               >
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3 border border-emerald-500/30">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-3 border border-indigo-500/30">
                   <CheckCircle2 size={28} className="animate-bounce" />
                 </div>
-                <h4 className="text-lg font-bold text-white font-outfit">Technician Has Arrived!</h4>
-                <p className="text-xs text-emerald-200/80 mt-1 mb-5">
-                  Your technician is at your location. Click below to confirm their arrival and start the service.
+                <h4 className="text-lg font-bold text-white font-outfit">Technician Finished Work!</h4>
+                <p className="text-xs text-indigo-200/80 mt-1 mb-5">
+                  Your technician has marked the service as finished. Please verify: Is the service completed?
                 </p>
                 <button
-                  onClick={handleConfirmArrival}
-                  disabled={confirmingArrival}
-                  className="w-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-400 text-black font-bold py-3.5 px-6 rounded-2xl text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                  onClick={async () => {
+                    if (window.confirm("Is the service completed?")) {
+                      try {
+                        const res = await fetch(`${API_URL}/tracking/${resolvedParams.bookingId}/complete`, { method: "POST" });
+                        const data = await res.json();
+                        if (data.success && data.data?.tracking) {
+                          setTracking(data.data.tracking);
+                        }
+                      } catch (e) {
+                        console.error("Error completing service:", e);
+                      }
+                    }
+                  }}
+                  className="w-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-bold py-3.5 px-6 rounded-2xl text-sm shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
                   <Sparkles size={16} />
-                  <span>{confirmingArrival ? "Starting Service..." : "Confirm Arrival & Start Service"}</span>
+                  <span>Yes, Confirm Service Completed</span>
                 </button>
               </motion.div>
-            )}
-
-            {/* Service In Progress Badge */}
-            {tracking.currentStatus === 'service_in_progress' && (
-              tracking.completionRequested ? (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 border border-indigo-500/40 rounded-3xl p-6 text-center text-white shadow-2xl shadow-indigo-950/60"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-3 border border-indigo-500/30">
-                    <CheckCircle2 size={28} className="animate-bounce" />
-                  </div>
-                  <h4 className="text-lg font-bold text-white font-outfit">Technician Finished Work!</h4>
-                  <p className="text-xs text-indigo-200/80 mt-1 mb-5">
-                    Your technician has marked the service as finished. Please verify: Is the service completed?
-                  </p>
-                  <button
-                    onClick={async () => {
-                      if (window.confirm("Is the service completed?")) {
-                        try {
-                          const res = await fetch(`${API_URL}/tracking/${resolvedParams.bookingId}/complete`, { method: "POST" });
-                          const data = await res.json();
-                          if (data.success && data.data?.tracking) {
-                            setTracking(data.data.tracking);
-                          }
-                        } catch (e) {
-                          console.error("Error completing service:", e);
-                        }
-                      }
-                    }}
-                    className="w-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-bold py-3.5 px-6 rounded-2xl text-sm shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+            ) : (
+              <>
+                {/* Interactive Arrival Confirmation Card when Reached */}
+                {tracking.currentStatus === 'reached' && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 border border-emerald-500/40 rounded-3xl p-6 text-center text-white shadow-2xl shadow-emerald-950/60 relative overflow-hidden"
                   >
-                    <Sparkles size={16} />
-                    <span>Yes, Confirm Service Completed</span>
-                  </button>
-                </motion.div>
-              ) : (
-                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-3xl p-5 text-center">
-                  <Wrench className="w-10 h-10 text-indigo-400 mx-auto mb-2 animate-spin" style={{ animationDuration: '6s' }} />
-                  <p className="text-white font-semibold text-lg">Service In Progress</p>
-                  <p className="text-indigo-300/70 text-sm mt-1">Your technician is currently performing the service.</p>
-                </div>
-              )
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3 border border-emerald-500/30">
+                      <CheckCircle2 size={28} className="animate-bounce" />
+                    </div>
+                    <h4 className="text-lg font-bold text-[#FFFFFF] font-outfit">Technician Has Arrived!</h4>
+                    <p className="text-xs text-emerald-200/80 mt-1 mb-5">
+                      Your technician is at your location. Click below to confirm their arrival and start the service.
+                    </p>
+                    <button
+                      onClick={handleConfirmArrival}
+                      disabled={confirmingArrival}
+                      className="w-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-400 text-black font-bold py-3.5 px-6 rounded-2xl text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Sparkles size={16} />
+                      <span>{confirmingArrival ? "Starting Service..." : "Confirm Arrival & Start Service"}</span>
+                    </button>
+                  </motion.div>
+                )}
+
+                {/* Service In Progress Badge */}
+                {tracking.currentStatus === 'service_in_progress' && (
+                  <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-3xl p-5 text-center">
+                    <Wrench className="w-10 h-10 text-indigo-400 mx-auto mb-2 animate-spin" style={{ animationDuration: '6s' }} />
+                    <p className="text-white font-semibold text-lg">Service In Progress</p>
+                    <p className="text-indigo-300/70 text-sm mt-1">Your technician is currently performing the service.</p>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Completed Badge */}
