@@ -76,21 +76,7 @@ useEffect(() => {
 
           </p>
 
-          <motion.button
-            whileHover={{
-              scale: 1.03,
-            }}
-            whileTap={{
-              scale: .97,
-            }}
-            className="mt-10 flex items-center gap-3 rounded-xl bg-[#C8A55E] px-7 py-4 font-semibold text-black transition"
-
-          >
-            View Today's Services
-
-            <ArrowUpRight size={18} />
-
-          </motion.button>
+          
 
         </div>
 

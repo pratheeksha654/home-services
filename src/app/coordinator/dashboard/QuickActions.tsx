@@ -27,22 +27,8 @@ const actions = [
     icon: AlertTriangle,
     color: "bg-red-500",
   },
-  {
-    title: "Today's Services",
-    description:
-      "Monitor all bookings scheduled for today.",
-    href: "/coordinator/today",
-    icon: CalendarDays,
-    color: "bg-[#C8A55E]",
-  },
-  {
-    title: "Pending Requests",
-    description:
-      "Review requests waiting for technician assignment.",
-    href: "/coordinator/pending",
-    icon: ClipboardList,
-    color: "bg-green-600",
-  },
+  
+ 
   {
     title: "Technician Applications",
     description:
