@@ -13,7 +13,7 @@ export default function Home() {
       if (user && user.role) {
         router.replace(getRoleBasedRoute(user.role));
       } else {
-        router.replace("/signup");
+        router.replace("/login");
       }
     }
   }, [user, isLoading, router]);

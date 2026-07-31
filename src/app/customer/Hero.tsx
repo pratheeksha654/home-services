@@ -11,15 +11,15 @@ export default function Hero() {
   const router = useRouter();
   return (
     <section className="relative min-h-[90vh] overflow-hidden bg-[#0D0F14] flex items-center">
-      
 
-      
+
+
       <div className="absolute -left-40 top-20 h-[450px] w-[450px] rounded-full bg-[#C8A55E]/10 blur-[150px]" />
       <div className="absolute -right-40 bottom-10 h-[500px] w-[500px] rounded-full bg-[#818CF8]/10 blur-[170px]" />
 
       <div className="relative mx-auto flex w-full max-w-[1600px] flex-col-reverse items-center px-6 py-10 lg:flex-row lg:px-16">
 
-        
+
         <motion.div
           initial={{ opacity: 0, x: -80 }}
           animate={{ opacity: 1, x: 0 }}
@@ -29,9 +29,9 @@ export default function Hero() {
           }}
           className="flex-1 z-10"
         >
-         
 
-          
+
+
           <h1 className="mt-6 text-4xl font-bold leading-tight text-[#ECEDF0] lg:text-5xl">
             Book Trusted
             <span className="block text-[#C8A55E]">
@@ -39,7 +39,7 @@ export default function Hero() {
             </span>
           </h1>
 
-          
+
           <p className="mt-6 max-w-xl text-base leading-7 text-[#9CA0AE]">
             Connect with verified technicians for electrical,
             plumbing, AC repair, carpentry and more. Fast,
@@ -47,7 +47,7 @@ export default function Hero() {
             need them.
           </p>
 
-          
+
           <div className="mt-8 space-y-4">
 
             <div className="flex items-center gap-3">
@@ -73,24 +73,24 @@ export default function Hero() {
 
           </div>
 
-          
+
           <div className="mt-10 flex flex-wrap gap-4">
 
-            <Button  onClick={() => router.push("/customer/book")}>
+            <Button onClick={() => router.push("/customer/book")}>
               Book Service
             </Button>
 
-            <Button  onClick={() => router.push("/customer/emergency-booking")}variant="outline">
+            <Button onClick={() => router.push("/customer/emergency-booking")} variant="outline">
               Emergency Booking
-              
+
             </Button>
 
           </div>
 
-          
+
         </motion.div>
 
-        
+
         <motion.div
           initial={{
             opacity: 0,
@@ -111,7 +111,7 @@ export default function Hero() {
           className="relative flex-[1.4] flex items-center justify-center"
         >
 
-          
+
           <div className="absolute h-[700px] w-[700px] rounded-full bg-gradient-to-r from-[#C8A55E]/15 via-[#C8A55E]/5 to-[#818CF8]/10 blur-[150px]" />
 
           <Image

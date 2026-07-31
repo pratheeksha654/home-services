@@ -132,7 +132,7 @@ export default function Navbar() {
   // Hide Navbar on specific authentication and onboarding routes
   const hiddenRoutes = [
     "/login",
-    "/signup",
+    "/login",
     "/onboarding/details",
     "/onboarding/role-select",
     "/onboarding/technician",
@@ -294,7 +294,7 @@ export default function Navbar() {
         {/* ================= LEFT: BRAND LOGO ================= */}
         <div className="flex items-center gap-3">
           <Link
-            href={isLoggedIn && role ? getRoleBasedRoute(role) : "/signup"}
+            href={isLoggedIn && role ? getRoleBasedRoute(role) : "/login"}
             className="flex items-center gap-2.5 group flex-shrink-0"
           >
             <Image
@@ -511,17 +511,10 @@ export default function Navbar() {
               <Link
                 href="/login"
                 id="navbar-login"
-                className="text-sm font-medium font-inter text-[#9CA0AE] hover:text-[#ECEDF0] px-4 py-2 rounded-xl transition-colors hover:bg-[#14161E]/50 border border-transparent hover:border-[rgba(255,255,255,0.06)]"
-              >
-                Log In
-              </Link>
-              <Link
-                href="/signup"
-                id="navbar-signup"
                 className="relative group overflow-hidden text-sm font-semibold font-inter text-[#08090D] bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] px-5 py-2 rounded-xl shadow-md hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all duration-200 active:scale-[0.98]"
               >
                 <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out" />
-                <span className="relative z-10">Sign Up</span>
+                <span className="relative z-10">Sign In</span>
               </Link>
             </div>
           )}
