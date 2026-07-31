@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
   Wallet,
@@ -14,9 +14,13 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  Play,
+  KeyRound,
+  X
 } from "lucide-react";
 import GlassButton from "@/components/ui/GlassButton";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
@@ -43,6 +47,14 @@ export default function TechnicianDashboard() {
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  // Tracking State
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpInput, setOtpInput] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const simulationInterval = useRef<NodeJS.Timeout | null>(null);
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   };
@@ -51,7 +63,6 @@ export default function TechnicianDashboard() {
     return date.toISOString().split("T")[0];
   };
 
-  // Authentication check
   useEffect(() => {
     if (!isLoading && !user) {
       router.replace("/login");
@@ -62,7 +73,6 @@ export default function TechnicianDashboard() {
     }
   }, [user, isLoading, router]);
 
-  // Fetch real-time jobs from Backend API
   const fetchJobs = useCallback(async () => {
     if (!user) return;
     setLoadingJobs(true);
@@ -86,17 +96,13 @@ export default function TechnicianDashboard() {
   useEffect(() => {
     if (user && user.role === "TECHNICIAN") {
       fetchJobs();
-
-      // Real-time live polling every 5 seconds for assigned orders
       const interval = setInterval(() => {
-        fetchJobs();
+        if (!isSimulating) fetchJobs(); // Pause polling during simulation to avoid race conditions
       }, 5000);
-
       return () => clearInterval(interval);
     }
-  }, [user, fetchJobs]);
+  }, [user, fetchJobs, isSimulating]);
 
-  // Status update handler
   const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
     setUpdatingId(bookingId);
     try {
@@ -117,6 +123,99 @@ export default function TechnicianDashboard() {
     }
   };
 
+  // Simulation Logic
+  const toggleSimulation = async (bookingId: string) => {
+    if (isSimulating) {
+      // Stop Simulation
+      setIsSimulating(false);
+      if (simulationInterval.current) clearInterval(simulationInterval.current);
+      return;
+    }
+
+    // Start Simulation
+    setIsSimulating(true);
+    let lat = 12.918;
+    let lng = 77.605;
+    let dist = 5.0;
+    let eta = 15;
+    let step = 0;
+
+    // Send initial "On the Way" status
+    await fetch(`${API_BASE}/technicians/jobs/${bookingId}/location`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lat, lng, distanceKm: dist, etaMinutes: eta, status: "on_the_way", statusLabel: "On the Way"
+      })
+    });
+
+    simulationInterval.current = setInterval(async () => {
+      step++;
+      lat += 0.0017;
+      lng += 0.0019;
+      dist = Math.max(0, dist - 0.5);
+      eta = Math.max(0, eta - 1.5);
+
+      let status = "on_the_way";
+      let statusLabel = "On the Way";
+
+      if (dist <= 0) {
+        status = "reached";
+        statusLabel = "Technician Reached";
+      } else if (dist <= 1.5) {
+        status = "arriving_soon";
+        statusLabel = "Almost There! " + Math.ceil(eta) + " min away";
+      } else {
+        status = "on_the_way";
+        statusLabel = "On the Way — " + dist.toFixed(1) + " km away";
+      }
+
+      try {
+        await fetch(`${API_BASE}/technicians/jobs/${bookingId}/location`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lat, lng, distanceKm: dist, etaMinutes: eta, status, statusLabel
+          })
+        });
+      } catch (e) {
+        console.error("Simulation tick error:", e);
+      }
+
+      if (dist <= 0) {
+        // Arrived — stop simulation, show OTP
+        setIsSimulating(false);
+        clearInterval(simulationInterval.current!);
+        setShowOtpModal(true);
+      }
+    }, 1500); // update every 1.5s — total trip ~15 seconds (10 ticks)
+  };
+
+  const handleVerifyOtp = async (bookingId: string) => {
+    setVerifyingOtp(true);
+    setOtpError("");
+    try {
+      const res = await fetch(`${API_BASE}/technicians/jobs/${bookingId}/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otp: otpInput })
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        setShowOtpModal(false);
+        setOtpInput("");
+        handleUpdateStatus(bookingId, "In Progress"); // Update DB status
+      } else {
+        setOtpError(data.message || "Invalid OTP");
+      }
+    } catch (err) {
+      setOtpError("Failed to verify OTP.");
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
   if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-[#08090D] flex items-center justify-center">
@@ -125,20 +224,13 @@ export default function TechnicianDashboard() {
     );
   }
 
-  // Filter today's active & pending jobs
   const todayStr = formatISO(new Date());
   const selectedStr = formatISO(selectedDate);
-
   const activeJob = jobs.find((j) => j.status === "In Progress" || j.status === "Assigned");
-  const completedTodayCount = jobs.filter(
-    (j) => j.status === "Completed"
-  ).length;
-
+  const completedTodayCount = jobs.filter((j) => j.status === "Completed").length;
   const todayPendingJobs = jobs.filter(
     (j) => j.status === "Assigned" || j.status === "Pending" || j.status === "In Progress"
   );
-
-  // Schedule for selected date
   const selectedDateSchedule = jobs.filter(
     (j) => !selectedStr || j.preferred_date === selectedStr || j.status === "Assigned" || j.status === "In Progress"
   );
@@ -151,8 +243,53 @@ export default function TechnicianDashboard() {
 
   return (
     <main className="min-h-screen bg-[#08090D] text-[#ECEDF0] pt-8 pb-20 px-4 sm:px-8">
+      {/* OTP Modal */}
+      <AnimatePresence>
+        {showOtpModal && activeJob && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-[#14161E] rounded-3xl p-6 w-full max-w-sm border border-[rgba(255,255,255,0.1)] shadow-2xl"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3 text-[#C8A55E]">
+                  <KeyRound size={24} />
+                  <h3 className="text-xl font-semibold text-white">Enter PIN</h3>
+                </div>
+                <button onClick={() => setShowOtpModal(false)} className="text-gray-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-sm text-gray-400 mb-6">
+                Ask the customer for their 4-digit arrival PIN to start the service.
+              </p>
+              
+              <input
+                type="text"
+                maxLength={4}
+                value={otpInput}
+                onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                className="w-full bg-[#0A0B10] border border-[rgba(255,255,255,0.1)] rounded-xl py-4 text-center text-3xl tracking-[1em] font-semibold text-white mb-2 focus:outline-none focus:border-[#C8A55E]"
+                placeholder="0000"
+              />
+              
+              {otpError && <p className="text-red-400 text-sm text-center mb-4">{otpError}</p>}
+              
+              <button
+                onClick={() => handleVerifyOtp(activeJob.booking_id)}
+                disabled={otpInput.length !== 4 || verifyingOtp}
+                className="w-full mt-4 bg-gradient-to-r from-[#C8A55E] to-[#E4D5A8] text-black font-bold py-3 rounded-xl disabled:opacity-50"
+              >
+                {verifyingOtp ? "Verifying..." : "Verify PIN"}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-heading font-bold bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
@@ -171,7 +308,6 @@ export default function TechnicianDashboard() {
           </button>
         </header>
 
-        {/* Stats Overview Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {stats.map((stat, index) => {
             const Icon = stat.icon;
@@ -197,9 +333,7 @@ export default function TechnicianDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Column */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Current Active Job Card */}
             <section>
               <h2 className="text-lg font-heading font-semibold text-white mb-4 flex items-center gap-2">
                 <div className="w-1.5 h-6 bg-[#C8A55E] rounded-full" />
@@ -229,7 +363,7 @@ export default function TechnicianDashboard() {
                     {activeJob.problem_description}
                   </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     <div className="flex items-start gap-3">
                       <MapPin className="w-5 h-5 text-[#9CA0AE] shrink-0 mt-0.5" />
                       <div>
@@ -245,24 +379,48 @@ export default function TechnicianDashboard() {
                     </div>
                   </div>
 
+                  {/* Trip Control Bar */}
+                  {activeJob.status === "Assigned" && (
+                    <div className="bg-[#0A0B10]/80 border border-indigo-500/30 p-4 rounded-xl mb-6 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
+                          <Navigation className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">Live Tracking</p>
+                          <p className="text-xs text-gray-400">Share your location with customer</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => toggleSimulation(activeJob.booking_id)}
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
+                            isSimulating 
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                            : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                          }`}
+                        >
+                          {isSimulating ? "Stop Simulating" : <><Play className="w-4 h-4" /> Start Trip (Sim)</>}
+                        </button>
+                        <button
+                          onClick={() => setShowOtpModal(true)}
+                          className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30"
+                        >
+                          Arrived (OTP)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-3">
                     <a
                       href={`tel:${activeJob.phone}`}
                       className="flex items-center gap-2 bg-[#0A0B10]/80 hover:bg-[#1A1D28] text-white px-4 py-2.5 rounded-xl text-sm font-medium border border-[rgba(255,255,255,0.06)] transition-all"
                     >
                       <Phone className="w-4 h-4 text-emerald-400" />
-                      Call Customer ({activeJob.phone})
+                      Call ({activeJob.phone})
                     </a>
-                    <a
-                      href={`https://maps.google.com/?q=${encodeURIComponent(activeJob.address)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 bg-[#0A0B10]/80 hover:bg-[#1A1D28] text-white px-4 py-2.5 rounded-xl text-sm font-medium border border-[rgba(255,255,255,0.06)] transition-all"
-                    >
-                      <Navigation className="w-4 h-4 text-blue-400" />
-                      Get Directions
-                    </a>
-                    {activeJob.status !== "Completed" && (
+                    {activeJob.status === "In Progress" && (
                       <button
                         disabled={updatingId === activeJob.booking_id}
                         onClick={() => handleUpdateStatus(activeJob.booking_id, "Completed")}
@@ -285,7 +443,6 @@ export default function TechnicianDashboard() {
               )}
             </section>
 
-            {/* Today's Pending Orders */}
             <section>
               <h2 className="text-lg font-heading font-semibold text-white mb-4 flex items-center gap-2">
                 <div className="w-1.5 h-6 bg-amber-400 rounded-full" />
@@ -312,24 +469,6 @@ export default function TechnicianDashboard() {
                         <p className="text-xs text-[#9CA0AE] mt-1">{job.address}</p>
                         <p className="text-xs text-[#5C6070] mt-0.5">Time: {job.preferred_time}</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {job.status === "Assigned" && (
-                          <button
-                            onClick={() => handleUpdateStatus(job.booking_id, "In Progress")}
-                            className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold"
-                          >
-                            Start Work
-                          </button>
-                        )}
-                        {job.status !== "Completed" && (
-                          <button
-                            onClick={() => handleUpdateStatus(job.booking_id, "Completed")}
-                            className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold"
-                          >
-                            Complete
-                          </button>
-                        )}
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -337,7 +476,6 @@ export default function TechnicianDashboard() {
             </section>
           </div>
 
-          {/* Right Column (Schedule Calendar Filter) */}
           <div className="lg:col-span-1">
             <section className="bg-[#14161E]/40 border border-[rgba(255,255,255,0.06)] p-6 rounded-2xl backdrop-blur-md sticky top-24">
               <div className="flex items-center justify-between mb-4">
@@ -347,7 +485,6 @@ export default function TechnicianDashboard() {
                 <Calendar className="w-5 h-5 text-[#C8A55E]" />
               </div>
 
-              {/* Date Selector */}
               <div className="flex items-center justify-between mb-6 bg-[#0A0B10]/60 p-2 rounded-xl border border-[rgba(255,255,255,0.03)]">
                 <button
                   onClick={() => {
@@ -374,7 +511,6 @@ export default function TechnicianDashboard() {
                 </button>
               </div>
 
-              {/* Day's Schedule List */}
               <div className="space-y-4">
                 {selectedDateSchedule.length === 0 ? (
                   <p className="text-xs text-center text-[#5C6070] py-4">
