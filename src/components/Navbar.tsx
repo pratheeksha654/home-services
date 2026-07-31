@@ -241,11 +241,6 @@ export default function Navbar() {
             label="Earnings"
             active={pathname.startsWith("/earnings")}
           />
-          <NavLink
-            href="/dashboard"
-            label="Dashboard"
-            active={pathname === "/dashboard"}
-          />
         </>
       );
     }
