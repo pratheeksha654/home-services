@@ -111,6 +111,23 @@ export default function TrackingMap({ technicianLocation, customerLocation, tech
 
   }, [technicianLocation?.lat, technicianLocation?.lng, mapReady]);
 
+  // Update customer marker if customerLocation changes dynamically
+  useEffect(() => {
+    if (!mapReady || !custMarkerRef.current || !mapInstanceRef.current) return;
+    const newLatLng = L.latLng(customerLocation.lat, customerLocation.lng);
+    custMarkerRef.current.setLatLng(newLatLng);
+    
+    if (technicianLocation) {
+      const bounds = L.latLngBounds([
+        [customerLocation.lat, customerLocation.lng],
+        [technicianLocation.lat, technicianLocation.lng],
+      ]);
+      mapInstanceRef.current.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: true, duration: 1 });
+    } else {
+      mapInstanceRef.current.panTo(newLatLng);
+    }
+  }, [customerLocation.lat, customerLocation.lng, mapReady]);
+
   return (
     <div
       ref={mapContainerRef}

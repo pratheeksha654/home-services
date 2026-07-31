@@ -204,6 +204,11 @@ export default function Navbar() {
             gold
           />
           <NavLink
+            href="/customer/track-booking"
+            label="Track Booking"
+            active={pathname.startsWith("/customer/track-booking") || pathname.startsWith("/customer/tracking")}
+          />
+          <NavLink
             href="/customer/services"
             label="My Services"
             active={pathname.startsWith("/customer/services")}
@@ -455,6 +460,19 @@ export default function Navbar() {
 
                     {/* Actions: Edit Profile & Logout */}
                     <div className="p-3 space-y-1.5">
+                      {role === "CUSTOMER" && (
+                        <Link
+                          href="/customer/track-booking"
+                          onClick={() => setDropdownOpen(false)}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold font-inter text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/25 rounded-xl transition-all duration-200 mb-1"
+                        >
+                          <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span>Track Active Bookings</span>
+                        </Link>
+                      )}
                       <Link
                         href="/profile"
                         id="navbar-edit-profile"

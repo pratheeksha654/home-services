@@ -2,7 +2,8 @@
 
 import { useEffect, useState, use } from 'react';
 import dynamic from 'next/dynamic';
-import { ShieldCheck, Clock, CheckCircle2, Navigation, MapPin, Truck, Wrench, PartyPopper } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ShieldCheck, Clock, CheckCircle2, Navigation, MapPin, Truck, Wrench, PartyPopper, Play, Pause, RotateCcw, Sparkles, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const TrackingMap = dynamic(() => import('@/components/TrackingMap'), { 
@@ -19,11 +20,13 @@ const TrackingMap = dynamic(() => import('@/components/TrackingMap'), {
 
 interface TrackingData {
   bookingId: string;
+  customerAddress?: string;
   technicianName: string;
   technicianPhone: string;
   technicianAvatar: string;
   currentStatus: string;
   statusLabel: string;
+  completionRequested?: boolean;
   arrivalOtp: string;
   distanceKm?: number;
   etaMinutes?: number;
@@ -38,7 +41,6 @@ interface TrackingData {
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
-const CUSTOMER_LOCATION = { lat: 12.9352, lng: 77.6245 };
 
 const STATUS_CONFIG: Record<string, { icon: any; color: string; bgColor: string; pulseColor: string }> = {
   assigned: { icon: CheckCircle2, color: 'text-blue-400', bgColor: 'bg-blue-500/10', pulseColor: 'bg-blue-500' },
@@ -51,9 +53,26 @@ const STATUS_CONFIG: Record<string, { icon: any; color: string; bgColor: string;
 
 export default function TrackingPage({ params }: { params: Promise<{ bookingId: string }> }) {
   const resolvedParams = use(params);
+  const router = useRouter();
   const [tracking, setTracking] = useState<TrackingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [prevStatus, setPrevStatus] = useState('');
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [customerLocation, setCustomerLocation] = useState<{lat: number, lng: number} | null>(null);
+
+  const geocodeAddress = async (address: string) => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        setCustomerLocation({ lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
+      } else {
+        setCustomerLocation({ lat: 12.9352, lng: 77.6245 }); // Fallback
+      }
+    } catch (e) {
+      setCustomerLocation({ lat: 12.9352, lng: 77.6245 }); // Fallback
+    }
+  };
 
   const fetchTracking = async () => {
     try {
@@ -68,6 +87,13 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
         }
         
         setTracking(newTracking);
+        
+        // Geocode customer address if not already done
+        if (newTracking.customerAddress && !customerLocation) {
+          geocodeAddress(newTracking.customerAddress);
+        } else if (!newTracking.customerAddress && !customerLocation) {
+          setCustomerLocation({ lat: 12.9352, lng: 77.6245 }); // Fallback
+        }
       }
     } catch (error) {
       console.error('Error fetching tracking:', error);
@@ -76,11 +102,80 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
     }
   };
 
+  // Regular tracking update loop
   useEffect(() => {
     fetchTracking();
     const interval = setInterval(fetchTracking, 1500);
     return () => clearInterval(interval);
   }, [resolvedParams.bookingId]);
+
+  // Redirect to home when completed
+  useEffect(() => {
+    if (tracking?.currentStatus === 'completed') {
+      const timer = setTimeout(() => {
+        router.push('/');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [tracking?.currentStatus, router]);
+
+  // Automated step simulation trigger
+  const handleSimulateStep = async () => {
+    try {
+      const res = await fetch(`${API_URL}/tracking/${resolvedParams.bookingId}/simulate`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success && data.data?.tracking) {
+        setTracking(data.data.tracking);
+      }
+    } catch (error) {
+      console.error('Error simulating tracking step:', error);
+    }
+  };
+
+  // Reset simulation trigger
+  const handleResetSimulation = async () => {
+    try {
+      const res = await fetch(`${API_URL}/tracking/${resolvedParams.bookingId}/reset`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success && data.data?.tracking) {
+        setTracking(data.data.tracking);
+      }
+    } catch (error) {
+      console.error('Error resetting simulation state:', error);
+    }
+  };
+
+  // Confirm arrival & start service
+  const [confirmingArrival, setConfirmingArrival] = useState(false);
+  const handleConfirmArrival = async () => {
+    setConfirmingArrival(true);
+    try {
+      const res = await fetch(`${API_URL}/tracking/${resolvedParams.bookingId}/confirm-arrival`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success && data.data?.tracking) {
+        setTracking(data.data.tracking);
+      }
+    } catch (error) {
+      console.error('Error confirming arrival:', error);
+    } finally {
+      setConfirmingArrival(false);
+    }
+  };
+
+  // Simulation timer loop
+  useEffect(() => {
+    if (!isSimulating) return;
+    const interval = setInterval(() => {
+      handleSimulateStep();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [isSimulating, resolvedParams.bookingId]);
 
   if (loading) {
     return (
@@ -112,6 +207,45 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
   return (
     <div className="min-h-screen bg-[#08090D] text-[#ECEDF0] pt-20 pb-12">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
+
+        {/* Demo Simulator Control Bar */}
+        <div className="mb-6 bg-[#14161E]/85 backdrop-blur-md border border-[#C8A55E]/30 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_0_20px_rgba(200,165,94,0.05)]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#C8A55E]/10 border border-[#C8A55E]/20 flex items-center justify-center text-[#C8A55E] shrink-0">
+              <Sparkles className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#C8A55E]">Evaluation Mode</span>
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+              <h3 className="text-sm font-bold text-white mt-0.5">Technician Live Tracking Simulator</h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            <button
+              onClick={() => setIsSimulating(!isSimulating)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-md ${
+                isSimulating 
+                  ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30' 
+                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              }`}
+            >
+              {isSimulating ? (
+                <>
+                  <Pause size={14} />
+                  <span>Pause Simulation</span>
+                </>
+              ) : (
+                <>
+                  <Play size={14} />
+                  <span>Start Simulation</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* Live Status Banner */}
         <AnimatePresence mode="wait">
@@ -148,7 +282,7 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
           <div className="lg:col-span-2 h-[500px] relative rounded-3xl overflow-hidden shadow-xl border border-[rgba(255,255,255,0.06)] bg-[#14161E]">
             <TrackingMap 
               technicianLocation={tracking.technicianLocation}
-              customerLocation={CUSTOMER_LOCATION}
+              customerLocation={customerLocation || { lat: 12.9352, lng: 77.6245 }}
               technicianName={tracking.technicianName}
             />
             
@@ -183,46 +317,81 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
           {/* Right Column */}
           <div className="space-y-5">
             
-            {/* Arrival OTP Card */}
-            <AnimatePresence>
-              {!reachedOrCompleted && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-3xl p-5 text-white shadow-xl relative overflow-hidden"
+            {/* Interactive Arrival Confirmation Card when Reached */}
+            {tracking.currentStatus === 'reached' && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 border border-emerald-500/40 rounded-3xl p-6 text-center text-white shadow-2xl shadow-emerald-950/60 relative overflow-hidden"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3 border border-emerald-500/30">
+                  <CheckCircle2 size={28} className="animate-bounce" />
+                </div>
+                <h4 className="text-lg font-bold text-white font-outfit">Technician Has Arrived!</h4>
+                <p className="text-xs text-emerald-200/80 mt-1 mb-5">
+                  Your technician is at your location. Click below to confirm their arrival and start the service.
+                </p>
+                <button
+                  onClick={handleConfirmArrival}
+                  disabled={confirmingArrival}
+                  className="w-full bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-400 text-black font-bold py-3.5 px-6 rounded-2xl text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
-                  <div className="absolute top-0 right-0 p-3 opacity-10">
-                    <ShieldCheck size={80} />
-                  </div>
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-2 text-indigo-300 mb-3">
-                      <ShieldCheck size={18} />
-                      <span className="font-medium text-xs uppercase tracking-wider">Arrival Verification PIN</span>
-                    </div>
-                    
-                    <div className="flex gap-2.5 mb-4">
-                      {tracking.arrivalOtp.split('').map((digit, i) => (
-                        <div key={i} className="w-12 h-14 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 flex items-center justify-center text-2xl font-bold shadow-inner">
-                          {digit}
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <p className="text-xs text-indigo-200 leading-relaxed">
-                      Share this PIN with your technician upon arrival.
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <Sparkles size={16} />
+                  <span>{confirmingArrival ? "Starting Service..." : "Confirm Arrival & Start Service"}</span>
+                </button>
+              </motion.div>
+            )}
 
-            {/* Verified Badge when reached */}
-            {reachedOrCompleted && tracking.currentStatus !== 'completed' && (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-5 text-center">
-                <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
-                <p className="text-white font-semibold text-lg">Technician Verified & Arrived</p>
-                <p className="text-emerald-300/70 text-sm mt-1">Service is {tracking.currentStatus === 'service_in_progress' ? 'in progress' : 'starting soon'}</p>
+            {/* Service In Progress Badge */}
+            {tracking.currentStatus === 'service_in_progress' && (
+              tracking.completionRequested ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 border border-indigo-500/40 rounded-3xl p-6 text-center text-white shadow-2xl shadow-indigo-950/60"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-3 border border-indigo-500/30">
+                    <CheckCircle2 size={28} className="animate-bounce" />
+                  </div>
+                  <h4 className="text-lg font-bold text-white font-outfit">Technician Finished Work!</h4>
+                  <p className="text-xs text-indigo-200/80 mt-1 mb-5">
+                    Your technician has marked the service as finished. Please verify: Is the service completed?
+                  </p>
+                  <button
+                    onClick={async () => {
+                      if (window.confirm("Is the service completed?")) {
+                        try {
+                          const res = await fetch(`${API_URL}/tracking/${resolvedParams.bookingId}/complete`, { method: "POST" });
+                          const data = await res.json();
+                          if (data.success && data.data?.tracking) {
+                            setTracking(data.data.tracking);
+                          }
+                        } catch (e) {
+                          console.error("Error completing service:", e);
+                        }
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-bold py-3.5 px-6 rounded-2xl text-sm shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Sparkles size={16} />
+                    <span>Yes, Confirm Service Completed</span>
+                  </button>
+                </motion.div>
+              ) : (
+                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-3xl p-5 text-center">
+                  <Wrench className="w-10 h-10 text-indigo-400 mx-auto mb-2 animate-spin" style={{ animationDuration: '6s' }} />
+                  <p className="text-white font-semibold text-lg">Service In Progress</p>
+                  <p className="text-indigo-300/70 text-sm mt-1">Your technician is currently performing the service.</p>
+                </div>
+              )
+            )}
+
+            {/* Completed Badge */}
+            {tracking.currentStatus === 'completed' && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-3xl p-5 text-center">
+                <PartyPopper className="w-10 h-10 text-green-400 mx-auto mb-2" />
+                <p className="text-white font-semibold text-lg">Service Completed!</p>
+                <p className="text-green-300/70 text-sm mt-1">Thank you for using HomeFixPro.</p>
               </div>
             )}
 

@@ -48,12 +48,21 @@ export default function TechnicianDashboard() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   // Tracking State
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [otpInput, setOtpInput] = useState("");
-  const [otpError, setOtpError] = useState("");
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const simulationInterval = useRef<NodeJS.Timeout | null>(null);
+  const [isTracking, setIsTracking] = useState(false);
+  const [completionSent, setCompletionSent] = useState(false);
+
+  const handleFinishWork = async (bookingId: string) => {
+    setUpdatingId(bookingId);
+    try {
+      await fetch(`${API_BASE}/tracking/${bookingId}/request-completion`, { method: "POST" });
+      setCompletionSent(true);
+    } catch (e) {
+      console.error("Error requesting completion:", e);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+  const watchId = useRef<number | null>(null);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -97,11 +106,11 @@ export default function TechnicianDashboard() {
     if (user && user.role === "TECHNICIAN") {
       fetchJobs();
       const interval = setInterval(() => {
-        if (!isSimulating) fetchJobs(); // Pause polling during simulation to avoid race conditions
+        if (!isTracking) fetchJobs(); // Pause polling during tracking to avoid race conditions
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [user, fetchJobs, isSimulating]);
+  }, [user, fetchJobs, isTracking]);
 
   const handleUpdateStatus = async (bookingId: string, newStatus: string) => {
     setUpdatingId(bookingId);
@@ -123,96 +132,131 @@ export default function TechnicianDashboard() {
     }
   };
 
-  // Simulation Logic
-  const toggleSimulation = async (bookingId: string) => {
-    if (isSimulating) {
-      // Stop Simulation
-      setIsSimulating(false);
-      if (simulationInterval.current) clearInterval(simulationInterval.current);
+  // Sync Polling
+  useEffect(() => {
+    const activeJob = jobs.find((j) => j.status === "In Progress" || j.status === "Assigned");
+    if (!activeJob) return;
+
+    const pollTracking = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/tracking/${activeJob.booking_id}`);
+        const data = await res.json();
+        if (data.success && data.data?.tracking) {
+          const status = data.data.tracking.currentStatus;
+          setSyncedStatus(status);
+          
+          // Auto-update DB status if customer confirmed arrival
+          if (status === 'service_in_progress' && activeJob.status === 'Assigned') {
+            handleUpdateStatus(activeJob.booking_id, "In Progress");
+          }
+        }
+      } catch (err) {
+        console.error("Error polling tracking:", err);
+      }
+    };
+
+    pollTracking();
+    const interval = setInterval(pollTracking, 2500);
+    return () => clearInterval(interval);
+  }, [jobs]);
+
+  const toggleLiveTracking = async (bookingId: string) => {
+    if (isTracking) {
+      setIsTracking(false);
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current);
+        watchId.current = null;
+      }
+      if ((window as any).fallbackGpsInterval) {
+        clearInterval((window as any).fallbackGpsInterval);
+      }
       return;
     }
 
-    // Start Simulation
-    setIsSimulating(true);
-    let lat = 12.918;
-    let lng = 77.605;
-    let dist = 5.0;
-    let eta = 15;
-    let step = 0;
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
 
-    // Send initial "On the Way" status
+    setIsTracking(true);
+    
+    // Send initial status
     await fetch(`${API_BASE}/technicians/jobs/${bookingId}/location`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        lat, lng, distanceKm: dist, etaMinutes: eta, status: "on_the_way", statusLabel: "On the Way"
+        lat: 12.918, lng: 77.605, distanceKm: 5.0, etaMinutes: 15, status: "on_the_way", statusLabel: "On the Way"
       })
     });
 
-    simulationInterval.current = setInterval(async () => {
-      step++;
-      lat += 0.0017;
-      lng += 0.0019;
-      dist = Math.max(0, dist - 0.5);
-      eta = Math.max(0, eta - 1.5);
+    let jitterLat = 0;
+    let jitterLng = 0;
 
-      let status = "on_the_way";
-      let statusLabel = "On the Way";
+    watchId.current = navigator.geolocation.watchPosition(
+      async (position) => {
+        // Add a visible movement jitter every time it fires or manually via an interval
+        jitterLat += 0.002;
+        jitterLng += 0.002;
 
-      if (dist <= 0) {
-        status = "reached";
-        statusLabel = "Technician Reached";
-      } else if (dist <= 1.5) {
-        status = "arriving_soon";
-        statusLabel = "Almost There! " + Math.ceil(eta) + " min away";
-      } else {
-        status = "on_the_way";
-        statusLabel = "On the Way — " + dist.toFixed(1) + " km away";
-      }
+        const latitude = position.coords.latitude + jitterLat;
+        const longitude = position.coords.longitude + jitterLng;
 
-      try {
-        await fetch(`${API_BASE}/technicians/jobs/${bookingId}/location`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lat, lng, distanceKm: dist, etaMinutes: eta, status, statusLabel
-          })
+        try {
+          await fetch(`${API_BASE}/technicians/jobs/${bookingId}/location`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lat: latitude, lng: longitude, distanceKm: 0.1, etaMinutes: 1, status: "on_the_way", statusLabel: "On the Way"
+            })
+          });
+        } catch (e) {
+          console.error("GPS stream error:", e);
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        alert("Failed to get location.");
+      },
+      { enableHighAccuracy: true, maximumAge: 0 }
+    );
+
+    // If on a stationary desktop, watchPosition might only fire once.
+    // Let's add a fallback interval to stream jittered location for the demo.
+    const fallbackInterval = setInterval(async () => {
+        if (!isTracking) return;
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+          jitterLat += 0.002;
+          jitterLng += 0.002;
+          try {
+            await fetch(`${API_BASE}/technicians/jobs/${bookingId}/location`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                lat: pos.coords.latitude + jitterLat, lng: pos.coords.longitude + jitterLng, distanceKm: 0.1, etaMinutes: 1, status: "on_the_way", statusLabel: "On the Way"
+              })
+            });
+          } catch(e) {}
         });
-      } catch (e) {
-        console.error("Simulation tick error:", e);
-      }
-
-      if (dist <= 0) {
-        // Arrived — stop simulation, show OTP
-        setIsSimulating(false);
-        clearInterval(simulationInterval.current!);
-        setShowOtpModal(true);
-      }
-    }, 1500); // update every 1.5s — total trip ~15 seconds (10 ticks)
+    }, 3000);
+    
+    // Store interval to clear it later
+    (window as any).fallbackGpsInterval = fallbackInterval;
   };
 
-  const handleVerifyOtp = async (bookingId: string) => {
-    setVerifyingOtp(true);
-    setOtpError("");
+  const markArrived = async (bookingId: string) => {
     try {
-      const res = await fetch(`${API_BASE}/technicians/jobs/${bookingId}/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ otp: otpInput })
-      });
-      const data = await res.json();
-      
-      if (res.ok && data.success) {
-        setShowOtpModal(false);
-        setOtpInput("");
-        handleUpdateStatus(bookingId, "In Progress"); // Update DB status
-      } else {
-        setOtpError(data.message || "Invalid OTP");
+      await handleUpdateStatus(bookingId, "In Progress");
+      setSyncedStatus("reached");
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current);
+        watchId.current = null;
       }
-    } catch (err) {
-      setOtpError("Failed to verify OTP.");
-    } finally {
-      setVerifyingOtp(false);
+      if ((window as any).fallbackGpsInterval) {
+        clearInterval((window as any).fallbackGpsInterval);
+      }
+      setIsTracking(false);
+    } catch (e) {
+      console.error("Error marking arrived:", e);
     }
   };
 
@@ -227,6 +271,7 @@ export default function TechnicianDashboard() {
   const todayStr = formatISO(new Date());
   const selectedStr = formatISO(selectedDate);
   const activeJob = jobs.find((j) => j.status === "In Progress" || j.status === "Assigned");
+  const lastCompletedJob = jobs.find((j) => j.status === "Completed");
   const completedTodayCount = jobs.filter((j) => j.status === "Completed").length;
   const todayPendingJobs = jobs.filter(
     (j) => j.status === "Assigned" || j.status === "Pending" || j.status === "In Progress"
@@ -243,51 +288,7 @@ export default function TechnicianDashboard() {
 
   return (
     <main className="min-h-screen bg-[#08090D] text-[#ECEDF0] pt-8 pb-20 px-4 sm:px-8">
-      {/* OTP Modal */}
-      <AnimatePresence>
-        {showOtpModal && activeJob && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-[#14161E] rounded-3xl p-6 w-full max-w-sm border border-[rgba(255,255,255,0.1)] shadow-2xl"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3 text-[#C8A55E]">
-                  <KeyRound size={24} />
-                  <h3 className="text-xl font-semibold text-white">Enter PIN</h3>
-                </div>
-                <button onClick={() => setShowOtpModal(false)} className="text-gray-400 hover:text-white">
-                  <X size={20} />
-                </button>
-              </div>
-              <p className="text-sm text-gray-400 mb-6">
-                Ask the customer for their 4-digit arrival PIN to start the service.
-              </p>
-              
-              <input
-                type="text"
-                maxLength={4}
-                value={otpInput}
-                onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
-                className="w-full bg-[#0A0B10] border border-[rgba(255,255,255,0.1)] rounded-xl py-4 text-center text-3xl tracking-[1em] font-semibold text-white mb-2 focus:outline-none focus:border-[#C8A55E]"
-                placeholder="0000"
-              />
-              
-              {otpError && <p className="text-red-400 text-sm text-center mb-4">{otpError}</p>}
-              
-              <button
-                onClick={() => handleVerifyOtp(activeJob.booking_id)}
-                disabled={otpInput.length !== 4 || verifyingOtp}
-                className="w-full mt-4 bg-gradient-to-r from-[#C8A55E] to-[#E4D5A8] text-black font-bold py-3 rounded-xl disabled:opacity-50"
-              >
-                {verifyingOtp ? "Verifying..." : "Verify PIN"}
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
 
       <div className="max-w-7xl mx-auto space-y-8">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -381,36 +382,37 @@ export default function TechnicianDashboard() {
 
                   {/* Trip Control Bar */}
                   {activeJob.status === "Assigned" && (
-                    <div className="bg-[#0A0B10]/80 border border-indigo-500/30 p-4 rounded-xl mb-6 flex items-center justify-between">
+                    <div className="bg-[#0A0B10]/80 border border-indigo-500/30 p-4 rounded-xl mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg">
+                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg shrink-0">
                           <Navigation className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-white">Live Tracking</p>
-                          <p className="text-xs text-gray-400">Share your location with customer</p>
+                          <p className="text-sm font-semibold text-white">GPS Live Tracking</p>
+                          <p className="text-xs text-gray-400">Stream your real location to the customer</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 w-full sm:w-auto">
                         <button
-                          onClick={() => toggleSimulation(activeJob.booking_id)}
-                          className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${
-                            isSimulating 
+                          onClick={() => toggleLiveTracking(activeJob.booking_id)}
+                          className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 flex-1 sm:flex-none ${
+                            isTracking 
                             ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
                             : 'bg-indigo-600 text-white hover:bg-indigo-500'
                           }`}
                         >
-                          {isSimulating ? "Stop Simulating" : <><Play className="w-4 h-4" /> Start Trip (Sim)</>}
+                          {isTracking ? "Stop GPS" : <><Play className="w-4 h-4" /> Start GPS</>}
                         </button>
                         <button
-                          onClick={() => setShowOtpModal(true)}
-                          className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30"
+                          onClick={() => markArrived(activeJob.booking_id)}
+                          className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 flex-1 sm:flex-none flex items-center justify-center"
                         >
-                          Arrived (OTP)
+                          Mark Arrived
                         </button>
                       </div>
                     </div>
                   )}
+
 
                   <div className="flex flex-wrap gap-3">
                     <a
@@ -421,16 +423,42 @@ export default function TechnicianDashboard() {
                       Call ({activeJob.phone})
                     </a>
                     {activeJob.status === "In Progress" && (
-                      <button
-                        disabled={updatingId === activeJob.booking_id}
-                        onClick={() => handleUpdateStatus(activeJob.booking_id, "Completed")}
-                        className="ml-auto flex items-center gap-2 bg-gradient-to-r from-[#C8A55E] to-[#E4D5A8] text-[#08090D] hover:shadow-lg hover:shadow-[#C8A55E]/20 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50"
-                      >
-                        <CheckCircle2 className="w-5 h-5" />
-                        {updatingId === activeJob.booking_id ? "Updating..." : "Mark Completed"}
-                      </button>
+                      completionSent ? (
+                        <div className="ml-auto bg-amber-500/10 border border-amber-500/30 px-4 py-2.5 rounded-xl text-amber-400 text-sm font-semibold flex items-center gap-2">
+                          <Clock className="w-4 h-4 animate-spin" />
+                          Waiting for Customer to Confirm Completion...
+                        </div>
+                      ) : (
+                        <button
+                          disabled={updatingId === activeJob.booking_id}
+                          onClick={() => handleFinishWork(activeJob.booking_id)}
+                          className="ml-auto flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-black hover:shadow-lg hover:shadow-emerald-500/20 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="w-5 h-5" />
+                          {updatingId === activeJob.booking_id ? "Sending..." : "Finish Work & Request Confirmation"}
+                        </button>
+                      )
                     )}
                   </div>
+                </div>
+              ) : lastCompletedJob ? (
+                <div className="bg-gradient-to-br from-emerald-950/80 via-emerald-900/60 to-[#0A0B10]/80 border border-emerald-500/40 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden shadow-2xl shadow-emerald-950/50">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
+                      <CheckCircle2 size={26} className="animate-bounce" />
+                    </div>
+                    <div>
+                      <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold rounded-full uppercase tracking-wider">
+                        Task Done!
+                      </span>
+                      <h3 className="text-xl font-bold text-white font-outfit mt-1">
+                        Service Completed
+                      </h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-emerald-200/90 bg-[#0A0B10]/50 p-4 rounded-xl border border-emerald-500/20 mt-2">
+                    Order for <strong className="text-white font-semibold">{lastCompletedJob.customer_name}</strong> ({lastCompletedJob.service_category}) has been verified & marked completed by customer. Great work!
+                  </p>
                 </div>
               ) : (
                 <div className="bg-[#14161E]/20 border border-dashed border-[rgba(255,255,255,0.08)] p-8 rounded-2xl text-center">
