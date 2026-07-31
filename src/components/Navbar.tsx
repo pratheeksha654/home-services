@@ -67,30 +67,42 @@ function NavLink({
   label,
   active,
   gold,
+  mobile,
+  onClick,
 }: {
   href: string;
   label: string;
   active: boolean;
   gold?: boolean;
+  mobile?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={href}
-      className={`relative text-sm font-medium font-inter transition-colors duration-200 group ${gold
+      onClick={onClick}
+      className={`relative font-medium font-inter transition-colors duration-200 group ${mobile
+        ? `flex items-center justify-between rounded-xl px-4 py-3 text-sm ${active
+          ? "bg-[#C8A55E]/12 text-[#ECEDF0] border border-[#C8A55E]/20"
+          : "bg-[#14161E]/60 text-[#9CA0AE] border border-[rgba(255,255,255,0.06)] hover:bg-[#14161E] hover:text-[#ECEDF0]"
+        }`
+        : `text-sm ${gold
         ? "text-[#C8A55E] hover:text-[#E4D5A8]"
         : active
           ? "text-[#ECEDF0]"
           : "text-[#9CA0AE] hover:text-[#ECEDF0]"
+        }`
         }`}
     >
       {label}
-      {/* Active underline */}
-      <span
-        className={`absolute -bottom-1.5 left-0 h-[2px] rounded-full bg-[#C8A55E] transition-all duration-300 ${active
-          ? "w-full opacity-100"
-          : "w-0 opacity-0 group-hover:w-full group-hover:opacity-40"
-          }`}
-      />
+      {!mobile && (
+        <span
+          className={`absolute -bottom-1.5 left-0 h-[2px] rounded-full bg-[#C8A55E] transition-all duration-300 ${active
+            ? "w-full opacity-100"
+            : "w-0 opacity-0 group-hover:w-full group-hover:opacity-40"
+            }`}
+        />
+      )}
     </Link>
   );
 }
@@ -126,8 +138,10 @@ export default function Navbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // Hide Navbar on specific authentication and onboarding routes
   const hiddenRoutes = [
@@ -158,6 +172,13 @@ export default function Navbar() {
       ) {
         setDropdownOpen(false);
       }
+
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(e.target as Node)
+      ) {
+        setMobileMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -183,7 +204,7 @@ export default function Navbar() {
     : user?.email?.charAt(0).toUpperCase() || "U";
 
   // Render navigation links dynamically by normalized role
-  const renderNavLinks = () => {
+  const renderNavLinks = (onLinkClick?: () => void) => {
     if (role === "CUSTOMER") {
       return (
         <>
@@ -191,22 +212,30 @@ export default function Navbar() {
             href="/customer"
             label="Home"
             active={pathname === "/customer"}
+            mobile
+            onClick={onLinkClick}
           />
           <NavLink
             href="/about"
             label="About Us"
             active={pathname === "/about"}
+            mobile
+            onClick={onLinkClick}
           />
           <NavLink
             href="/customer/book"
             label="Book Service"
             active={pathname.startsWith("/customer/book")}
             gold
+            mobile
+            onClick={onLinkClick}
           />
           <NavLink
             href="/customer/services"
             label="My Services"
             active={pathname.startsWith("/customer/services")}
+            mobile
+            onClick={onLinkClick}
           />
         </>
       );
@@ -219,27 +248,37 @@ export default function Navbar() {
             href="/technician"
             label="Home"
             active={pathname === "/technician"}
+            mobile
+            onClick={onLinkClick}
           />
           <NavLink
             href="/about"
             label="About Us"
             active={pathname === "/about"}
+            mobile
+            onClick={onLinkClick}
           />
           <NavLink
             href="/technician/jobs"
             label="Active Jobs"
             active={pathname.startsWith("/technician/jobs")}
             gold
+            mobile
+            onClick={onLinkClick}
           />
           <NavLink
             href="/technician/schedule"
             label="Schedule"
             active={pathname.startsWith("/technician/schedule")}
+            mobile
+            onClick={onLinkClick}
           />
           <NavLink
             href="/earnings"
             label="Earnings"
             active={pathname.startsWith("/earnings")}
+            mobile
+            onClick={onLinkClick}
           />
         </>
       );
@@ -255,22 +294,53 @@ export default function Navbar() {
               pathname === "/coordinator/dashboard" ||
               pathname === "/coordinator"
             }
+            mobile
+            onClick={onLinkClick}
           />
           <NavLink
             href="/coordinator/applications"
             label="Applications"
             active={pathname === "/coordinator/applications"}
+            mobile
+            onClick={onLinkClick}
           />
           <NavLink
             href="/about"
             label="About Us"
             active={pathname === "/about"}
+            mobile
+            onClick={onLinkClick}
           />
         </>
       );
     }
 
     // Default fallback links for logged-in users with unassigned roles
+    return (
+      <>
+        <NavLink
+          href="/"
+          label="Home"
+          active={pathname === "/"}
+          mobile
+          onClick={onLinkClick}
+        />
+        <NavLink
+          href="/about"
+          label="About Us"
+          active={pathname === "/about"}
+          mobile
+          onClick={onLinkClick}
+        />
+      </>
+    );
+  };
+
+  const renderDesktopNavLinks = () => {
+    if (isLoggedIn) {
+      return renderNavLinks();
+    }
+
     return (
       <>
         <NavLink href="/" label="Home" active={pathname === "/"} />
@@ -308,23 +378,111 @@ export default function Navbar() {
         </div>
 
         {/* ================= CENTER: NAVIGATION LABELS ================= */}
-        <div className="hidden md:flex items-center gap-8">
-          {isLoggedIn ? (
-            renderNavLinks()
-          ) : (
-            <>
-              <NavLink href="/" label="Home" active={pathname === "/"} />
-              <NavLink
-                href="/about"
-                label="About Us"
-                active={pathname === "/about"}
-              />
-            </>
-          )}
+        <div className="hidden lg:flex items-center gap-8">
+          {renderDesktopNavLinks()}
         </div>
 
         {/* ================= RIGHT: AUTH STATE & PROFILE ================= */}
         <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+          <div className="relative lg:hidden" ref={mobileMenuRef}>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((value) => !value)}
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation-menu"
+              className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#14161E]/60 border border-[rgba(255,255,255,0.08)] text-[#ECEDF0] hover:bg-[#14161E] transition-colors duration-200 focus:outline-none"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d={mobileMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+                />
+              </svg>
+            </button>
+
+            {mobileMenuOpen && (
+              <div
+                id="mobile-navigation-menu"
+                className="fixed left-3 right-3 top-[72px] z-[60] max-h-[calc(100vh-88px)] overflow-y-auto rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#0F1118]/98 shadow-2xl shadow-black/60 backdrop-blur-xl lg:hidden"
+              >
+                <div className="p-3 space-y-2">
+                  {isLoggedIn ? (
+                    <>
+                      <div className="px-1 pb-2">
+                        <p className="text-[10px] uppercase tracking-[0.24em] text-[#5C6070] font-semibold mb-1">
+                          Navigation
+                        </p>
+                        <div className="flex items-center gap-2 text-sm text-[#ECEDF0]">
+                          <span className="font-semibold truncate">
+                            {user?.name || "User"}
+                          </span>
+                          {role && <RoleBadge role={role} />}
+                        </div>
+                      </div>
+                      {renderNavLinks(() => setMobileMenuOpen(false))}
+                      <div className="pt-2 border-t border-[rgba(255,255,255,0.06)] space-y-2">
+                        <Link
+                          href="/profile"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center justify-between rounded-xl px-4 py-3 text-sm bg-[#14161E]/60 text-[#ECEDF0] border border-[rgba(255,255,255,0.06)] hover:bg-[#14161E] transition-colors duration-200"
+                        >
+                          Edit Profile
+                          <span className="text-[#5C6070]">→</span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            logout();
+                          }}
+                          className="w-full flex items-center justify-between rounded-xl px-4 py-3 text-sm bg-rose-500/5 text-rose-300 border border-rose-500/10 hover:bg-rose-500/10 transition-colors duration-200"
+                        >
+                          Log Out
+                          <span>↗</span>
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <NavLink
+                        href="/"
+                        label="Home"
+                        active={pathname === "/"}
+                        mobile
+                        onClick={() => setMobileMenuOpen(false)}
+                      />
+                      <NavLink
+                        href="/about"
+                        label="About Us"
+                        active={pathname === "/about"}
+                        mobile
+                        onClick={() => setMobileMenuOpen(false)}
+                      />
+                      <div className="pt-2">
+                        <Link
+                          href="/login"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] text-[#08090D]"
+                        >
+                          Sign In
+                          <span>→</span>
+                        </Link>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {isLoggedIn ? (
             <>
               {/* Pending Status Pill for Technicians */}
