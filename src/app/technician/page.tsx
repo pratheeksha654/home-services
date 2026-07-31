@@ -16,7 +16,8 @@ import {
   RefreshCw,
   Play,
   KeyRound,
-  X
+  X,
+  Sparkles
 } from "lucide-react";
 import GlassButton from "@/components/ui/GlassButton";
 import { useRouter } from "next/navigation";
@@ -52,6 +53,8 @@ export default function TechnicianDashboard() {
   const [syncedStatus, setSyncedStatus] = useState<string | null>(null);
   const [completionSent, setCompletionSent] = useState(false);
   const [acknowledgedJobs, setAcknowledgedJobs] = useState<string[]>([]);
+  const [showCompletedModal, setShowCompletedModal] = useState(false);
+  const [completedJobDetails, setCompletedJobDetails] = useState<Booking | null>(null);
 
   const handleFinishWork = async (bookingId: string) => {
     setUpdatingId(bookingId);
@@ -155,6 +158,8 @@ export default function TechnicianDashboard() {
           // Auto-update DB status if customer confirmed completion
           if (status === 'completed' && activeJob.status !== 'Completed') {
             await handleUpdateStatus(activeJob.booking_id, "Completed");
+            setCompletedJobDetails(activeJob);
+            setShowCompletedModal(true);
             setCompletionSent(false);
           }
         }
@@ -168,33 +173,87 @@ export default function TechnicianDashboard() {
     return () => clearInterval(interval);
   }, [jobs]);
 
-  const toggleLiveTracking = async (bookingId: string) => {
-    if (isTracking) {
-      setIsTracking(false);
-      try {
-        await fetch(`${API_BASE}/tracking/${bookingId}/reset`, { method: "POST" });
-      } catch (e) {}
-      return;
-    }
-
-    setIsTracking(true);
+  const handleStartTrip = async (bookingId: string) => {
     try {
       await fetch(`${API_BASE}/tracking/${bookingId}/start-trip`, { method: "POST" });
+      setSyncedStatus("ready_to_leave");
+      
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          await fetch(`${API_BASE}/tracking/${bookingId}/location`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              distanceKm: 5.0,
+              etaMinutes: 15
+            })
+          });
+        });
+      }
     } catch (e) {
       console.error("Error starting trip:", e);
     }
   };
 
-  const markArrived = async (bookingId: string) => {
+  const handleStartDriving = async (bookingId: string) => {
     try {
-      await fetch(`${API_BASE}/tracking/${bookingId}/reach`, { method: "POST" });
-      await handleUpdateStatus(bookingId, "In Progress");
-      setSyncedStatus("reached");
-      setIsTracking(false);
+      await fetch(`${API_BASE}/tracking/${bookingId}/start-driving`, { method: "POST" });
+      setSyncedStatus("on_the_way");
+      setIsTracking(true);
+
+      if (navigator.geolocation) {
+        watchId.current = navigator.geolocation.watchPosition(
+          async (position) => {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            try {
+              await fetch(`${API_BASE}/tracking/${bookingId}/location`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  lat: latitude,
+                  lng: longitude,
+                  distanceKm: 2.5,
+                  etaMinutes: 8
+                })
+              });
+            } catch (err) {
+              console.error("Error updating location:", err);
+            }
+          },
+          (err) => console.error("Geolocation error:", err),
+          { enableHighAccuracy: true, maximumAge: 0 }
+        );
+      }
     } catch (e) {
-      console.error("Error marking arrived:", e);
+      console.error("Error starting driving:", e);
     }
   };
+
+  const handleMarkReached = async (bookingId: string) => {
+    try {
+      await fetch(`${API_BASE}/tracking/${bookingId}/reach`, { method: "POST" });
+      setSyncedStatus("reached");
+      setIsTracking(false);
+
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current);
+        watchId.current = null;
+      }
+    } catch (e) {
+      console.error("Error marking reached:", e);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current);
+      }
+    };
+  }, []);
 
   if (isLoading || !user) {
     return (
@@ -318,33 +377,60 @@ export default function TechnicianDashboard() {
 
                   {/* Trip Control Bar */}
                   {activeJob.status === "Assigned" && (
-                    <div className="bg-[#0A0B10]/80 border border-indigo-500/30 p-4 rounded-xl mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg shrink-0">
-                          <Navigation className="w-5 h-5" />
+                    <div className="bg-[#0A0B10]/80 border border-indigo-500/30 p-4 rounded-xl mb-6 shadow-lg shadow-indigo-950/40">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-lg shrink-0">
+                            <Navigation className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-white">Live Tracking Workflow</p>
+                            <p className="text-xs text-gray-400">
+                              {syncedStatus === 'ready_to_leave' 
+                                ? 'Technician is ready to leave. Tap below to start driving.' 
+                                : syncedStatus === 'on_the_way' 
+                                ? 'Currently driving. Streaming live coordinates to customer.' 
+                                : syncedStatus === 'reached'
+                                ? 'Reached location. Waiting for customer to confirm.'
+                                : 'Ready to head out? Start GPS to let the customer know.'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-semibold text-white">GPS Live Tracking</p>
-                          <p className="text-xs text-gray-400">Stream your real location to the customer</p>
+                        <div className="flex gap-2 w-full sm:w-auto justify-end">
+                          {(!syncedStatus || syncedStatus === 'assigned') && (
+                            <button
+                              onClick={() => handleStartTrip(activeJob.booking_id)}
+                              className="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            >
+                              <span>1. Ready to Leave</span>
+                            </button>
+                          )}
+
+                          {syncedStatus === 'ready_to_leave' && (
+                            <button
+                              onClick={() => handleStartDriving(activeJob.booking_id)}
+                              className="px-4 py-2 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            >
+                              <span>2. Start Driving (GPS)</span>
+                            </button>
+                          )}
+
+                          {syncedStatus === 'on_the_way' && (
+                            <button
+                              onClick={() => handleMarkReached(activeJob.booking_id)}
+                              className="px-4 py-2 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                            >
+                              <span>3. Mark as Reached</span>
+                            </button>
+                          )}
+
+                          {syncedStatus === 'reached' && (
+                            <div className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2 animate-pulse w-full justify-center">
+                              <Clock size={12} />
+                              Awaiting customer to verify arrival...
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      <div className="flex gap-2 w-full sm:w-auto">
-                        <button
-                          onClick={() => toggleLiveTracking(activeJob.booking_id)}
-                          className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 flex-1 sm:flex-none ${
-                            isTracking 
-                            ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                            : 'bg-indigo-600 text-white hover:bg-indigo-500'
-                          }`}
-                        >
-                          {isTracking ? "Stop GPS" : <><Play className="w-4 h-4" /> Start GPS</>}
-                        </button>
-                        <button
-                          onClick={() => markArrived(activeJob.booking_id)}
-                          className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 flex-1 sm:flex-none flex items-center justify-center"
-                        >
-                          Mark Arrived
-                        </button>
                       </div>
                     </div>
                   )}
@@ -527,6 +613,37 @@ export default function TechnicianDashboard() {
           </div>
         </div>
       </div>
+
+      {showCompletedModal && completedJobDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#08090D]/80 backdrop-blur-md px-4">
+          <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 border border-indigo-500/40 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl shadow-indigo-950/60 relative overflow-hidden">
+            <div className="absolute -top-12 -left-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl" />
+            <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl" />
+
+            <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-4 border border-indigo-500/30">
+              <CheckCircle2 size={36} className="animate-bounce" />
+            </div>
+
+            <h3 className="text-2xl font-bold text-white font-outfit">Task Completed!</h3>
+            <p className="text-sm text-indigo-200/80 mt-2 mb-6">
+              Customer <strong className="text-white">{completedJobDetails.customer_name}</strong> has confirmed completion of the <strong className="text-white">{completedJobDetails.service_category}</strong> service.
+            </p>
+
+            <button
+              onClick={() => {
+                setAcknowledgedJobs(prev => [...prev, completedJobDetails.booking_id]);
+                setShowCompletedModal(false);
+                setCompletedJobDetails(null);
+                fetchJobs();
+              }}
+              className="w-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:scale-[1.02] active:scale-95 text-white font-bold py-3.5 px-6 rounded-2xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-500/30"
+            >
+              <Sparkles size={16} />
+              <span>Acknowledge & Load Next Task</span>
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -116,7 +116,7 @@ export default function TrackingMap({ technicianLocation, customerLocation, tech
     if (!mapReady || !custMarkerRef.current || !mapInstanceRef.current) return;
     const newLatLng = L.latLng(customerLocation.lat, customerLocation.lng);
     custMarkerRef.current.setLatLng(newLatLng);
-    
+
     if (technicianLocation) {
       const bounds = L.latLngBounds([
         [customerLocation.lat, customerLocation.lng],

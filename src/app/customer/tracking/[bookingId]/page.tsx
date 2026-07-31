@@ -44,6 +44,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1
 
 const STATUS_CONFIG: Record<string, { icon: any; color: string; bgColor: string; pulseColor: string }> = {
   assigned: { icon: CheckCircle2, color: 'text-blue-400', bgColor: 'bg-blue-500/10', pulseColor: 'bg-blue-500' },
+  ready_to_leave: { icon: Clock, color: 'text-violet-400', bgColor: 'bg-violet-500/10', pulseColor: 'bg-violet-500' },
   on_the_way: { icon: Truck, color: 'text-amber-400', bgColor: 'bg-amber-500/10', pulseColor: 'bg-amber-500' },
   arriving_soon: { icon: Navigation, color: 'text-orange-400', bgColor: 'bg-orange-500/10', pulseColor: 'bg-orange-500' },
   reached: { icon: MapPin, color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', pulseColor: 'bg-emerald-500' },
