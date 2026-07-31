@@ -16,7 +16,7 @@ export default function BrandLogo({
   href,
 }: BrandLogoProps) {
   const { user } = useAuth();
-  const targetHref = href || (user?.role ? getRoleBasedRoute(user.role) : "/signup");
+  const targetHref = href || (user?.role ? getRoleBasedRoute(user.role) : "/login");
 
   // Mapping sizes for flexibility if needed
   const logoDimensions = {
