@@ -38,9 +38,24 @@ export default function DispatcherEmergencyRequestsPage() {
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+
+      const token = typeof window !== "undefined"
+        ? localStorage.getItem("homefixpro_token") || localStorage.getItem("token")
+        : null;
+
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      };
+
+      // Append a timestamp to prevent 304 caching issues
+      const timestamp = new Date().getTime();
+
       const [requestsResponse, techniciansResponse] = await Promise.all([
-        fetch(`${API_URL}/emergency-requests`),
-        fetch(`${API_URL}/technicians?approval_status=Approved&availability=Available`),
+        fetch(`${API_URL}/emergency-requests?_t=${timestamp}`, { headers, cache: "no-store" }),
+        fetch(`${API_URL}/technicians?approval_status=Approved&availability=Available&_t=${timestamp}`, { headers, cache: "no-store" }),
       ]);
 
       if (!requestsResponse.ok) {
@@ -50,12 +65,14 @@ export default function DispatcherEmergencyRequestsPage() {
       const requestsPayload = await requestsResponse.json();
       const techniciansPayload = techniciansResponse.ok ? await techniciansResponse.json() : null;
 
-      setRequests(mapEmergencyRequests(requestsPayload?.data?.items ?? requestsPayload?.data ?? requestsPayload));
-      setTechnicians(
-        mapTechnicians(
-          techniciansPayload?.data?.technicians ?? techniciansPayload?.data ?? techniciansPayload
-        )
-      );
+      // Keep the response envelope intact: the mapper reads the canonical
+      // `data.emergencyRequests` field returned by the backend.
+      setRequests(mapEmergencyRequests(requestsPayload));
+
+      const rawTechs = techniciansPayload?.data?.technicians ?? techniciansPayload?.data ?? techniciansPayload;
+      const techArray = Array.isArray(rawTechs) ? rawTechs : (rawTechs ? [rawTechs] : []);
+      setTechnicians(mapTechnicians(techArray));
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load emergency requests right now.");
     } finally {
@@ -76,7 +93,7 @@ export default function DispatcherEmergencyRequestsPage() {
     void runLoad();
     const intervalId = window.setInterval(() => {
       void loadRequests(false);
-    }, 5000);
+    }, 10000); // Increased interval to 10 seconds to stop spamming
 
     return () => {
       active = false;
@@ -91,42 +108,46 @@ export default function DispatcherEmergencyRequestsPage() {
   };
 
   // ── Accept: update status → 'assigned' ───────────────────────────────────
-  
-const handleAssign = async (
-  requestId: string,
-  technicianId: string
-) => {
-  try {
-    const API_URL =
-      process.env.NEXT_PUBLIC_API_URL ||
-      "http://localhost:5000/api/v1";
+  const handleAssign = async (
+    requestId: string,
+    technicianId: string
+  ) => {
+    try {
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL ||
+        "http://localhost:5000/api/v1";
 
-    const res = await fetch(
-      `${API_URL}/emergency-requests/${requestId}/assign`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          technicianId,
-        }),
+      const token = typeof window !== "undefined"
+        ? localStorage.getItem("homefixpro_token") || localStorage.getItem("token")
+        : null;
+
+      const res = await fetch(
+        `${API_URL}/emergency-requests/${requestId}/assign`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            technicianId,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Failed to assign technician.");
+        return;
       }
-    );
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.message || "Failed to assign technician.");
-      return;
+      await loadRequests(false);
+    } catch (err) {
+      console.error(err);
+      alert("Unable to assign technician.");
     }
-
-    await loadRequests(false);
-  } catch (err) {
-    console.error(err);
-    alert("Unable to assign technician.");
-  }
-};
+  };
 
   // ── Reject: update status → 'rejected' ───────────────────────────────────
   const handleReject = async () => {

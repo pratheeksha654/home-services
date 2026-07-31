@@ -18,6 +18,7 @@ interface Props {
   request: EmergencyRequest;
   matchingTechnicians: Technician[];
   onAssign: (requestId: string, technicianId: string) => void;
+  onReject?: (requestId: string) => void;
 }
 
 function formatDateTime(isoString: string) {
