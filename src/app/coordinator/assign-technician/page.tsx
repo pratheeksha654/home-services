@@ -49,6 +49,7 @@ interface Technician {
 }
 
 export default function CoordinatorAssignTechnicianPage() {
+  
   return (
     <AuthGuard>
       <AssignTechnicianContent />
@@ -57,6 +58,27 @@ export default function CoordinatorAssignTechnicianPage() {
 }
 
 function AssignTechnicianContent() {
+
+const isMatchingTechnician = (
+  technicianSkill: string,
+  serviceCategory: string
+) => {
+  const skill = technicianSkill.toLowerCase();
+  const category = serviceCategory.toLowerCase();
+
+  if (category.includes("paint")) return skill.includes("paint");
+  if (category.includes("carpent")) return skill.includes("carpent");
+  if (category.includes("clean")) return skill.includes("clean");
+  if (category.includes("plumb")) return skill.includes("plumb");
+  if (category.includes("electric")) return skill.includes("electric");
+  if (category.includes("ac")) return skill.includes("ac");
+  if (category.includes("appliance")) return skill.includes("appliance");
+  if (category.includes("pest")) return skill.includes("pest");
+
+  return skill.includes(category);
+};
+
+
   const [pendingBookings, setPendingBookings] = useState<Booking[]>([]);
   const [availableTechnicians, setAvailableTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -371,17 +393,12 @@ function AssignTechnicianContent() {
                       key={tech.technician_id}
                       className="bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-xl p-4 flex items-start gap-3"
                     >
-                      <img
-                        src={tech.profile_image || "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80"}
-                        alt={tech.name}
-                        className="w-10 h-10 rounded-full object-cover border border-[#C8A55E]/30 shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
+                      
+                      <div className="flex-1">
                         <div className="flex items-center justify-between gap-1">
                           <h4 className="text-xs font-bold text-white truncate">{tech.name}</h4>
                           <div className="flex items-center gap-1 text-[11px] text-[#C8A55E]">
-                            <Star className="w-3 h-3 fill-[#C8A55E]" />
-                            <span>{tech.rating}</span>
+                           
                           </div>
                         </div>
                         <p className="text-[11px] text-[#9CA0AE] truncate">{tech.skills}</p>
@@ -434,7 +451,14 @@ function AssignTechnicianContent() {
                   </p>
                 ) : (
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                    {availableTechnicians.map((tech) => {
+                    {availableTechnicians
+ .filter((tech) =>
+  isMatchingTechnician(
+    tech.skills,
+    selectedBooking.service_category
+  )
+)
+  .map((tech) => {
                       const isSelected = selectedTechnicianId === tech.technician_id;
                       return (
                         <div
@@ -447,17 +471,11 @@ function AssignTechnicianContent() {
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <img
-                              src={tech.profile_image || "https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=150&auto=format&fit=crop&q=80"}
-                              alt={tech.name}
-                              className="w-9 h-9 rounded-full object-cover border border-[#C8A55E]/30"
-                            />
+                           
                             <div>
                               <h4 className="text-xs font-bold text-white">{tech.name}</h4>
                               <p className="text-[11px] text-[#9CA0AE]">{tech.skills}</p>
-                              <p className="text-[10px] text-[#5C6070]">
-                                Exp: {tech.experience} yrs • Rating: ⭐ {tech.rating}
-                              </p>
+                             
                             </div>
                           </div>
 
