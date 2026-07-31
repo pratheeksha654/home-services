@@ -91,10 +91,42 @@ export default function DispatcherEmergencyRequestsPage() {
   };
 
   // ── Accept: update status → 'assigned' ───────────────────────────────────
-  const handleAssign = async () => {
-    alert("Assignment is currently stored in the UI state only. The backend endpoint is ready for persistence next.");
+  
+const handleAssign = async (
+  requestId: string,
+  technicianId: string
+) => {
+  try {
+    const API_URL =
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:5000/api/v1";
+
+    const res = await fetch(
+      `${API_URL}/emergency-requests/${requestId}/assign`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          technicianId,
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data.message || "Failed to assign technician.");
+      return;
+    }
+
     await loadRequests(false);
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Unable to assign technician.");
+  }
+};
 
   // ── Reject: update status → 'rejected' ───────────────────────────────────
   const handleReject = async () => {

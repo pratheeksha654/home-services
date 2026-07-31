@@ -11,12 +11,34 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const normalizeText = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
 
+const SERVICE_CATEGORY_KEYWORDS: Record<ServiceCategory, string[]> = {
+  Electrical: ["electrician", "electrical", "electric", "wiring", "wire", "circuit", "fan", "light", "socket", "switch"],
+  Plumbing: ["plumber", "plumbing", "pipe", "tap", "leak", "drain", "water", "bathroom", "toilet", "sink"],
+  "Appliance Repair": ["appliance repair", "appliance", "fridge", "refrigerator", "washing machine", "microwave", "mixer", "oven"],
+  "AC Repair": ["ac technician", "ac repair", "air condition", "hvac", "cooling", "compressor", "refrigerant"],
+  Carpenter: ["carpenter", "carpentry", "wood", "furniture", "door", "cabinet", "shelf"],
+  Cleaning: ["cleaner", "cleaning", "housekeeping", "sanitize", "mop", "dust", "sweep"],
+  Other: [],
+};
+
+const inferServiceCategories = (text: string): ServiceCategory[] => {
+  const normalized = text.toLowerCase();
+
+  return (Object.keys(SERVICE_CATEGORY_KEYWORDS) as ServiceCategory[]).filter((category) => {
+    if (category === "Other") {
+      return false;
+    }
+
+    return SERVICE_CATEGORY_KEYWORDS[category].some((keyword) => normalized.includes(keyword));
+  });
+};
+
 const normalizeServiceCategory = (value: unknown): ServiceCategory => {
   if (typeof value === "string") {
     const normalized = value.toLowerCase();
     if (normalized.includes("plumb")) return "Plumbing";
     if (normalized.includes("elect")) return "Electrical";
-    if (normalized.includes("ac")) return "AC Repair";
+    if (normalized.includes("ac") || normalized.includes("hvac") || normalized.includes("air condition")) return "AC Repair";
     if (normalized.includes("appl")) return "Appliance Repair";
     if (normalized.includes("carp")) return "Carpenter";
     if (normalized.includes("clean")) return "Cleaning";
@@ -50,12 +72,20 @@ const normalizePriority = (value: unknown) => {
 const normalizeTechnician = (value: unknown): Technician | null => {
   if (!isRecord(value)) return null;
 
-  const serviceCategories = Array.isArray(value.serviceCategories)
+  const explicitCategories = Array.isArray(value.serviceCategories)
     ? (value.serviceCategories as string[]).map((category) => normalizeServiceCategory(category))
-    : normalizeText(value.skills)
-        .split(/[,&/|\n]/)
-        .map((skill) => normalizeServiceCategory(skill))
-        .filter((category, index, categories) => categories.indexOf(category) === index);
+    : [];
+
+  const skillCategories = normalizeText(value.skills)
+    .split(/[,&/|\n]/)
+    .flatMap((skill) => inferServiceCategories(skill));
+
+  const serviceCategories = Array.from(
+    new Set([...explicitCategories, ...skillCategories])
+  ).filter((category) => category !== "Other");
+
+  const normalizedServiceCategories =
+    serviceCategories.length > 0 ? serviceCategories : ["Other"];
 
   const availabilityStatus =
     typeof value.availabilityStatus === "string"
@@ -80,7 +110,7 @@ const normalizeTechnician = (value: unknown): Technician | null => {
     ),
     email: typeof value.email === "string" ? value.email : typeof value.profile?.email === "string" ? value.profile.email : undefined,
     phone: typeof value.phone === "string" ? value.phone : typeof value.profile?.phone === "string" ? value.profile.phone : undefined,
-    serviceCategories,
+    serviceCategories: normalizedServiceCategories,
     availabilityStatus: (normalizedAvailability.includes("avail")
       ? "Available"
       : normalizedAvailability.includes("busy")
