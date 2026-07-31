@@ -76,7 +76,7 @@ export default function Hero() {
           
           <div className="mt-10 flex flex-wrap gap-4">
 
-            <Button  onClick={() => router.push("/customer/book-service")}>
+            <Button  onClick={() => router.push("/customer/book")}>
               Book Service
             </Button>
 
@@ -88,16 +88,6 @@ export default function Hero() {
           </div>
 
           
-          <div className="mt-8 max-w-xl rounded-xl border border-[#C8A55E]/20 bg-[#14161E] p-4">
-            <p className="text-sm text-[#9CA0AE]">
-              <span className="font-semibold text-[#C8A55E]">
-                Note:
-              </span>{" "}
-              Prices shown during booking are estimated.
-              Final charges may vary depending on inspection,
-              service complexity and additional work required.
-            </p>
-          </div>
         </motion.div>
 
         

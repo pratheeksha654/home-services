@@ -70,8 +70,8 @@ export default function TechnicianRejectedPage() {
         </div>
 
         <div className="mt-8">
-          <GlassButton variant="secondary" fullWidth onClick={() => (window.location.href = "/onboarding/role-select")}>
-            Back to Home
+          <GlassButton variant="primary" fullWidth onClick={() => (window.location.href = "/technician/apply")}>
+            Back to Form
           </GlassButton>
         </div>
       </div>

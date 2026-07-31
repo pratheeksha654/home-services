@@ -20,13 +20,18 @@ export interface User {
   email: string;
   phone?: string;
   phoneNumber?: string;
+
+  street?: string;
+  city?: string;
+  postalCode?: string;
+
   avatar?: string;
   avatarUrl?: string;
-  // Onboarding fields
+
   ageCategory?: string;
   gender?: string;
   address?: UserAddress;
-  // Role & status
+
   role?: UserRole | string;
   onboardingCompleted?: boolean;
 }
@@ -357,18 +362,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser((prev) => {
-        if (!prev) return prev;
-        const updated: User = {
-          ...prev,
-          name: data.name,
-          phone: data.phone || prev.phone,
-          ageCategory: data.age,
-          gender: data.gender,
-          address: data.address,
-        };
-        saveSession(updated, token || "");
-        return updated;
-      });
+  if (!prev) return prev;
+
+  const updated: User = {
+    ...prev,
+    name: data.name,
+    phone: data.phone || prev.phone,
+    ageCategory: data.age,
+    gender: data.gender,
+
+    street: data.address.street,
+    city: data.address.city,
+    postalCode: data.address.postalCode,
+
+    address: data.address,
+  };
+
+  saveSession(updated, token || "");
+  return updated;
+});
 
       return { success: true };
     } catch (err: any) {
