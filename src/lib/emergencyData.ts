@@ -72,6 +72,8 @@ const normalizePriority = (value: unknown) => {
 const normalizeTechnician = (value: unknown): Technician | null => {
   if (!isRecord(value)) return null;
 
+  const profile = isRecord(value.profile) ? value.profile : null;
+
   const explicitCategories = Array.isArray(value.serviceCategories)
     ? (value.serviceCategories as string[]).map((category) => normalizeServiceCategory(category))
     : [];
@@ -84,7 +86,7 @@ const normalizeTechnician = (value: unknown): Technician | null => {
     new Set([...explicitCategories, ...skillCategories])
   ).filter((category) => category !== "Other");
 
-  const normalizedServiceCategories =
+  const normalizedServiceCategories: ServiceCategory[] =
     serviceCategories.length > 0 ? serviceCategories : ["Other"];
 
   const availabilityStatus =
@@ -102,14 +104,14 @@ const normalizeTechnician = (value: unknown): Technician | null => {
     id: String(value.id ?? value.technician_id ?? value.technicianId ?? "tech-unknown"),
     name: String(
       value.name ??
-        value.profile_name ??
-        value.fullName ??
-        value.profile?.name ??
-        value.email ??
-        "Unnamed technician"
+      value.profile_name ??
+      value.fullName ??
+      profile?.name ??
+      value.email ??
+      "Unnamed technician"
     ),
-    email: typeof value.email === "string" ? value.email : typeof value.profile?.email === "string" ? value.profile.email : undefined,
-    phone: typeof value.phone === "string" ? value.phone : typeof value.profile?.phone === "string" ? value.profile.phone : undefined,
+    email: typeof value.email === "string" ? value.email : typeof profile?.email === "string" ? profile.email : undefined,
+    phone: typeof value.phone === "string" ? value.phone : typeof profile?.phone === "string" ? profile.phone : undefined,
     serviceCategories: normalizedServiceCategories,
     availabilityStatus: (normalizedAvailability.includes("avail")
       ? "Available"
@@ -127,62 +129,98 @@ const normalizeTechnician = (value: unknown): Technician | null => {
       ? value.skills.filter((skill): skill is string => typeof skill === "string")
       : typeof value.skills === "string"
         ? value.skills
-            .split(/[,&/|\n]/)
-            .map((skill) => skill.trim())
-            .filter(Boolean)
+          .split(/[,&/|\n]/)
+          .map((skill) => skill.trim())
+          .filter(Boolean)
         : [],
   };
 };
 
 export function mapEmergencyRequests(payload: unknown): EmergencyRequest[] {
+  // GET /emergency-requests returns:
+  // { success, message, data: { emergencyRequests: EmergencyRequest[], items, total } }
+  // `items` is a legacy compatibility alias, so prefer the canonical field first.
   const items = Array.isArray(payload)
     ? payload
-    : isRecord(payload) && Array.isArray(payload.items)
-      ? payload.items
-      : isRecord(payload) && isRecord(payload.data) && Array.isArray(payload.data.items)
-        ? payload.data.items
-        : isRecord(payload)
-          ? [payload]
-          : [];
+    : isRecord(payload) && Array.isArray(payload.emergencyRequests)
+      ? payload.emergencyRequests
+      : isRecord(payload) && Array.isArray(payload.items)
+        ? payload.items
+        : isRecord(payload) && isRecord(payload.data) && Array.isArray(payload.data.emergencyRequests)
+          ? payload.data.emergencyRequests
+          : isRecord(payload) && isRecord(payload.data) && Array.isArray(payload.data.items)
+            ? payload.data.items
+            : isRecord(payload) && isRecord(payload.data) && Array.isArray(payload.data.requests)
+              ? payload.data.requests
+        : isRecord(payload) && Array.isArray(payload.data)
+          ? payload.data
+          : isRecord(payload) && (typeof payload.id === "string" || typeof payload.customerName === "string")
+            ? [payload]
+            : [];
 
   const requests: EmergencyRequest[] = [];
 
   items.forEach((item) => {
     if (!isRecord(item)) return;
 
-    const serviceCategory = normalizeServiceCategory(item.serviceCategory);
+    const serviceCategory = normalizeServiceCategory(
+      item.serviceCategory ?? item.service_category ?? item.category
+    );
+
     const customerName =
       typeof item.customerName === "string"
         ? item.customerName
-        : typeof item.name === "string"
-          ? item.name
-          : "Customer";
+        : typeof item.customer_name === "string"
+          ? item.customer_name
+          : typeof item.name === "string"
+            ? item.name
+            : "Customer";
+
     const phoneNumber =
       typeof item.phoneNumber === "string"
         ? item.phoneNumber
-        : typeof item.customerPhone === "string"
-          ? item.customerPhone
-          : typeof item.phone === "string"
-            ? item.phone
+        : typeof item.phone_number === "string"
+          ? item.phone_number
+          : typeof item.customerPhone === "string"
+            ? item.customerPhone
+            : typeof item.phone === "string"
+              ? item.phone
+              : "";
+
+    const address =
+      typeof item.address === "string"
+        ? item.address
+        : typeof item.customerAddress === "string"
+          ? item.customerAddress
+          : typeof item.customer_address === "string"
+            ? item.customer_address
             : "";
-    const address = typeof item.address === "string" ? item.address : typeof item.customerAddress === "string" ? item.customerAddress : "";
+
     const problemDescription =
       typeof item.problemDescription === "string"
         ? item.problemDescription
-        : typeof item.description === "string"
-          ? item.description
-        : "No description provided.";
+        : typeof item.problem_description === "string"
+          ? item.problem_description
+          : typeof item.description === "string"
+            ? item.description
+            : "No description provided.";
+
     const submittedAt =
       typeof item.submittedAt === "string"
         ? item.submittedAt
-        : typeof item.createdAt === "string"
-          ? item.createdAt
-        : new Date().toISOString();
+        : typeof item.submitted_at === "string"
+          ? item.submitted_at
+          : typeof item.createdAt === "string"
+            ? item.createdAt
+            : typeof item.created_at === "string"
+              ? item.created_at
+              : new Date().toISOString();
+
     const status = normalizeStatus(item.status);
     const priority = normalizePriority(item.priority);
 
     requests.push({
-      id: String(item.id ?? `${customerName}-${submittedAt}`),
+      id: String(item.id ?? item._id ?? `${customerName}-${submittedAt}`),
       customerName,
       phoneNumber,
       address,
@@ -194,7 +232,9 @@ export function mapEmergencyRequests(payload: unknown): EmergencyRequest[] {
       assignedTechnicianId:
         typeof item.assignedTechnicianId === "string"
           ? item.assignedTechnicianId
-          : null,
+          : typeof item.assigned_technician_id === "string"
+            ? item.assigned_technician_id
+            : null,
     });
   });
 
@@ -202,11 +242,19 @@ export function mapEmergencyRequests(payload: unknown): EmergencyRequest[] {
 }
 
 export function mapTechnicians(payload: unknown): Technician[] {
-  if (!Array.isArray(payload)) return [];
+  const rawList = Array.isArray(payload)
+    ? payload
+    : isRecord(payload) && Array.isArray(payload.technicians)
+      ? payload.technicians
+      : isRecord(payload) && isRecord(payload.data) && Array.isArray(payload.data.technicians)
+        ? payload.data.technicians
+        : isRecord(payload) && Array.isArray(payload.data)
+          ? payload.data
+          : [];
 
   const technicians: Technician[] = [];
 
-  payload.forEach((item) => {
+  rawList.forEach((item) => {
     const technician = normalizeTechnician(item);
     if (technician) {
       technicians.push(technician);
