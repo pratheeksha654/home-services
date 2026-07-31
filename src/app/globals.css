@@ -309,3 +309,12 @@ input:-webkit-autofill:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Leaflet Marker Smooth Transitions ────────────────────────────── */
+.leaflet-marker-icon {
+  transition: transform 1.5s linear !important;
+}
+.leaflet-marker-shadow {
+  transition: transform 1.5s linear !important;
+}
+
