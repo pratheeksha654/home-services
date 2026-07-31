@@ -124,18 +124,18 @@ export default function BookingPage() {
 
     // Auto-fill customer info & address from AuthContext when user profile loads
     useEffect(() => {
-    if (!user) return;
+        if (!user) return;
 
-    setCustomerName(user.name || "");
-    setEmail(user.email || "");
-    setPhone(user.phone || "");
+        setCustomerName(user.name || "");
+        setEmail(user.email || "");
+        setPhone(user.phone || "");
 
-    setAddress({
-        street: user.street || "",
-        city: user.city || "",
-        postalCode: user.postalCode || "",
-    });
-}, [user]);
+        setAddress({
+            street: user.street || "",
+            city: user.city || "",
+            postalCode: user.postalCode || "",
+        });
+    }, [user]);
 
     const activeServiceObj = SERVICES.find((s) => s.id === selectedService);
     const finalTimeSlot = isCustomTime ? customTimeSlot : timeSlot;
@@ -345,27 +345,24 @@ export default function BookingPage() {
                         <React.Fragment key={item.num}>
                             <div className="flex items-center gap-2">
                                 <div
-                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                                        step >= item.num
-                                            ? "bg-gradient-to-r from-[#C8A55E] to-[#E4D5A8] text-[#08090D]"
-                                            : "bg-[#14161E] text-[#5C6070] border border-[rgba(255,255,255,0.08)]"
-                                    }`}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${step >= item.num
+                                        ? "bg-gradient-to-r from-[#C8A55E] to-[#E4D5A8] text-[#08090D]"
+                                        : "bg-[#14161E] text-[#5C6070] border border-[rgba(255,255,255,0.08)]"
+                                        }`}
                                 >
                                     {item.num}
                                 </div>
                                 <span
-                                    className={`text-xs font-medium hidden sm:inline ${
-                                        step >= item.num ? "text-[#ECEDF0]" : "text-[#5C6070]"
-                                    }`}
+                                    className={`text-xs font-medium hidden sm:inline ${step >= item.num ? "text-[#ECEDF0]" : "text-[#5C6070]"
+                                        }`}
                                 >
                                     {item.title}
                                 </span>
                             </div>
                             {index < 2 && (
                                 <div
-                                    className={`flex-1 h-[2px] mx-3 transition-colors ${
-                                        step > item.num ? "bg-[#C8A55E]" : "bg-[rgba(255,255,255,0.08)]"
-                                    }`}
+                                    className={`flex-1 h-[2px] mx-3 transition-colors ${step > item.num ? "bg-[#C8A55E]" : "bg-[rgba(255,255,255,0.08)]"
+                                        }`}
                                 />
                             )}
                         </React.Fragment>
@@ -393,11 +390,10 @@ export default function BookingPage() {
                                                     setSelectedService(srv.id);
                                                     setErrorMsg(null);
                                                 }}
-                                                className={`text-left p-4 rounded-xl border transition-all duration-200 flex flex-col justify-between ${
-                                                    isSelected
-                                                        ? "bg-[#C8A55E]/10 border-[#C8A55E] shadow-lg shadow-[#C8A55E]/10"
-                                                        : "bg-[#14161E]/60 border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]"
-                                                }`}
+                                                className={`text-left p-4 rounded-xl border transition-all duration-200 flex flex-col justify-between ${isSelected
+                                                    ? "bg-[#C8A55E]/10 border-[#C8A55E] shadow-lg shadow-[#C8A55E]/10"
+                                                    : "bg-[#14161E]/60 border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]"
+                                                    }`}
                                             >
                                                 <div className="flex items-center gap-3 mb-2">
                                                     <span className="text-2xl">{srv.icon}</span>
@@ -488,11 +484,10 @@ export default function BookingPage() {
                                                                 e.preventDefault();
                                                                 setTimeSlot(slot);
                                                             }}
-                                                            className={`p-3 rounded-xl border text-xs font-semibold text-center transition-all cursor-pointer ${
-                                                                isSelected
-                                                                    ? "bg-[#C8A55E] text-[#08090D] border-[#C8A55E] shadow-md shadow-[#C8A55E]/20"
-                                                                    : "bg-[#14161E] text-[#9CA0AE] border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.2)] hover:text-white"
-                                                            }`}
+                                                            className={`p-3 rounded-xl border text-xs font-semibold text-center transition-all cursor-pointer ${isSelected
+                                                                ? "bg-[#C8A55E] text-[#08090D] border-[#C8A55E] shadow-md shadow-[#C8A55E]/20"
+                                                                : "bg-[#14161E] text-[#9CA0AE] border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.2)] hover:text-white"
+                                                                }`}
                                                         >
                                                             {slot}
                                                         </button>
@@ -517,7 +512,7 @@ export default function BookingPage() {
 
                         {/* STEP 3: CONTACT & ADDRESS */}
                         {step === 3 && (
-                            <form id="booking-form" onSubmit={handleSubmitBooking}>
+                            <div>
                                 <h2 className="text-xl font-semibold text-white font-outfit mb-4">
                                     Customer Contact & Service Address
                                 </h2>
@@ -627,7 +622,7 @@ export default function BookingPage() {
                                         />
                                     </div>
                                 </div>
-                            </form>
+                            </div>
                         )}
 
                         {/* Navigation Controls */}
@@ -660,8 +655,8 @@ export default function BookingPage() {
                                 </button>
                             ) : (
                                 <button
-                                    type="submit"
-                                    form="booking-form"
+                                    type="button"
+                                    onClick={handleSubmitBooking}
                                     disabled={isSubmitting}
                                     className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] text-[#08090D] font-semibold text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all flex items-center gap-2"
                                 >
@@ -672,7 +667,7 @@ export default function BookingPage() {
                     </div>
 
                     {/* Summary Sidebar */}
-                    <div className="bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 backdrop-blur-xl">
+                    <div className="sticky top-6 bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 backdrop-blur-xl">
                         <h3 className="text-base font-semibold text-white font-outfit mb-4 pb-3 border-b border-[rgba(255,255,255,0.06)]">
                             Booking Summary
                         </h3>
