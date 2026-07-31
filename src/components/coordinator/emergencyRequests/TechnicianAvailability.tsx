@@ -55,12 +55,7 @@ export default function TechnicianAvailability({
         </div>
 
         {/* Rating */}
-        <div className="flex items-center gap-1 text-[#C8A55E]">
-          <Star size={12} fill="currentColor" />
-          <span className="text-xs font-semibold text-[#ECEDF0]">
-            {technician.rating.toFixed(1)}
-          </span>
-        </div>
+        
       </div>
 
       {/* Service categories */}
