@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, Clock, CheckCircle2, Navigation, MapPin, Truck, Wrench, PartyPopper, Play, Pause, RotateCcw, Sparkles, ChevronRight } from 'lucide-react';
@@ -56,11 +56,13 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
   const router = useRouter();
   const [tracking, setTracking] = useState<TrackingData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [prevStatus, setPrevStatus] = useState('');
-  const [isSimulating, setIsSimulating] = useState(false);
   const [customerLocation, setCustomerLocation] = useState<{lat: number, lng: number} | null>(null);
 
+  const geocodedRef = useRef(false);
+
   const geocodeAddress = async (address: string) => {
+    if (geocodedRef.current) return;
+    geocodedRef.current = true;
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
       const data = await res.json();
@@ -80,18 +82,13 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
       const data = await res.json();
       if (data.success && data.data?.tracking) {
         const newTracking = data.data.tracking;
-        
-        // Detect status change for animation
-        if (tracking && newTracking.currentStatus !== tracking.currentStatus) {
-          setPrevStatus(tracking.currentStatus);
-        }
-        
         setTracking(newTracking);
         
         // Geocode customer address if not already done
-        if (newTracking.customerAddress && !customerLocation) {
+        if (newTracking.customerAddress && !geocodedRef.current) {
           geocodeAddress(newTracking.customerAddress);
-        } else if (!newTracking.customerAddress && !customerLocation) {
+        } else if (!newTracking.customerAddress && !geocodedRef.current) {
+          geocodedRef.current = true;
           setCustomerLocation({ lat: 12.9352, lng: 77.6245 }); // Fallback
         }
       }
@@ -118,37 +115,6 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
       return () => clearTimeout(timer);
     }
   }, [tracking?.currentStatus, router]);
-
-  // Automated step simulation trigger
-  const handleSimulateStep = async () => {
-    try {
-      const res = await fetch(`${API_URL}/tracking/${resolvedParams.bookingId}/simulate`, {
-        method: 'POST'
-      });
-      const data = await res.json();
-      if (data.success && data.data?.tracking) {
-        setTracking(data.data.tracking);
-      }
-    } catch (error) {
-      console.error('Error simulating tracking step:', error);
-    }
-  };
-
-  // Reset simulation trigger
-  const handleResetSimulation = async () => {
-    try {
-      const res = await fetch(`${API_URL}/tracking/${resolvedParams.bookingId}/reset`, {
-        method: 'POST'
-      });
-      const data = await res.json();
-      if (data.success && data.data?.tracking) {
-        setTracking(data.data.tracking);
-      }
-    } catch (error) {
-      console.error('Error resetting simulation state:', error);
-    }
-  };
-
   // Confirm arrival & start service
   const [confirmingArrival, setConfirmingArrival] = useState(false);
   const handleConfirmArrival = async () => {
@@ -167,15 +133,6 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
       setConfirmingArrival(false);
     }
   };
-
-  // Simulation timer loop
-  useEffect(() => {
-    if (!isSimulating) return;
-    const interval = setInterval(() => {
-      handleSimulateStep();
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [isSimulating, resolvedParams.bookingId]);
 
   if (loading) {
     return (
@@ -207,45 +164,6 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
   return (
     <div className="min-h-screen bg-[#08090D] text-[#ECEDF0] pt-20 pb-12">
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-
-        {/* Demo Simulator Control Bar */}
-        <div className="mb-6 bg-[#14161E]/85 backdrop-blur-md border border-[#C8A55E]/30 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_0_20px_rgba(200,165,94,0.05)]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#C8A55E]/10 border border-[#C8A55E]/20 flex items-center justify-center text-[#C8A55E] shrink-0">
-              <Sparkles className="w-5 h-5 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#C8A55E]">Evaluation Mode</span>
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              </div>
-              <h3 className="text-sm font-bold text-white mt-0.5">Technician Live Tracking Simulator</h3>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-            <button
-              onClick={() => setIsSimulating(!isSimulating)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-md ${
-                isSimulating 
-                  ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30' 
-                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              }`}
-            >
-              {isSimulating ? (
-                <>
-                  <Pause size={14} />
-                  <span>Pause Simulation</span>
-                </>
-              ) : (
-                <>
-                  <Play size={14} />
-                  <span>Start Simulation</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
 
         {/* Live Status Banner */}
         <AnimatePresence mode="wait">

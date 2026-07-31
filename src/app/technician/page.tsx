@@ -51,6 +51,7 @@ export default function TechnicianDashboard() {
   const [isTracking, setIsTracking] = useState(false);
   const [syncedStatus, setSyncedStatus] = useState<string | null>(null);
   const [completionSent, setCompletionSent] = useState(false);
+  const [acknowledgedJobs, setAcknowledgedJobs] = useState<string[]>([]);
 
   const handleFinishWork = async (bookingId: string) => {
     setUpdatingId(bookingId);
@@ -153,9 +154,8 @@ export default function TechnicianDashboard() {
           
           // Auto-update DB status if customer confirmed completion
           if (status === 'completed' && activeJob.status !== 'Completed') {
-            setJobs((prev) =>
-              prev.map((j) => (j.booking_id === activeJob.booking_id ? { ...j, status: "Completed" } : j))
-            );
+            await handleUpdateStatus(activeJob.booking_id, "Completed");
+            setCompletionSent(false);
           }
         }
       } catch (err) {
@@ -171,97 +171,25 @@ export default function TechnicianDashboard() {
   const toggleLiveTracking = async (bookingId: string) => {
     if (isTracking) {
       setIsTracking(false);
-      if (watchId.current !== null) {
-        navigator.geolocation.clearWatch(watchId.current);
-        watchId.current = null;
-      }
-      if ((window as any).fallbackGpsInterval) {
-        clearInterval((window as any).fallbackGpsInterval);
-      }
-      return;
-    }
-
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
+      try {
+        await fetch(`${API_BASE}/tracking/${bookingId}/reset`, { method: "POST" });
+      } catch (e) {}
       return;
     }
 
     setIsTracking(true);
-    
-    // Send initial status
-    await fetch(`${API_BASE}/technicians/jobs/${bookingId}/location`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lat: 12.918, lng: 77.605, distanceKm: 5.0, etaMinutes: 15, status: "on_the_way", statusLabel: "On the Way"
-      })
-    });
-
-    let jitterLat = 0;
-    let jitterLng = 0;
-
-    watchId.current = navigator.geolocation.watchPosition(
-      async (position) => {
-        // Add a visible movement jitter every time it fires or manually via an interval
-        jitterLat += 0.002;
-        jitterLng += 0.002;
-
-        const latitude = position.coords.latitude + jitterLat;
-        const longitude = position.coords.longitude + jitterLng;
-
-        try {
-          await fetch(`${API_BASE}/technicians/jobs/${bookingId}/location`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              lat: latitude, lng: longitude, distanceKm: 0.1, etaMinutes: 1, status: "on_the_way", statusLabel: "On the Way"
-            })
-          });
-        } catch (e) {
-          console.error("GPS stream error:", e);
-        }
-      },
-      (error) => {
-        console.error("Geolocation error:", error);
-        alert("Failed to get location.");
-      },
-      { enableHighAccuracy: true, maximumAge: 0 }
-    );
-
-    // If on a stationary desktop, watchPosition might only fire once.
-    // Let's add a fallback interval to stream jittered location for the demo.
-    const fallbackInterval = setInterval(async () => {
-        if (!isTracking) return;
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-          jitterLat += 0.002;
-          jitterLng += 0.002;
-          try {
-            await fetch(`${API_BASE}/technicians/jobs/${bookingId}/location`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                lat: pos.coords.latitude + jitterLat, lng: pos.coords.longitude + jitterLng, distanceKm: 0.1, etaMinutes: 1, status: "on_the_way", statusLabel: "On the Way"
-              })
-            });
-          } catch(e) {}
-        });
-    }, 3000);
-    
-    // Store interval to clear it later
-    (window as any).fallbackGpsInterval = fallbackInterval;
+    try {
+      await fetch(`${API_BASE}/tracking/${bookingId}/start-trip`, { method: "POST" });
+    } catch (e) {
+      console.error("Error starting trip:", e);
+    }
   };
 
   const markArrived = async (bookingId: string) => {
     try {
+      await fetch(`${API_BASE}/tracking/${bookingId}/reach`, { method: "POST" });
       await handleUpdateStatus(bookingId, "In Progress");
       setSyncedStatus("reached");
-      if (watchId.current !== null) {
-        navigator.geolocation.clearWatch(watchId.current);
-        watchId.current = null;
-      }
-      if ((window as any).fallbackGpsInterval) {
-        clearInterval((window as any).fallbackGpsInterval);
-      }
       setIsTracking(false);
     } catch (e) {
       console.error("Error marking arrived:", e);
@@ -279,7 +207,7 @@ export default function TechnicianDashboard() {
   const todayStr = formatISO(new Date());
   const selectedStr = formatISO(selectedDate);
   const activeJob = jobs.find((j) => j.status === "In Progress" || j.status === "Assigned");
-  const lastCompletedJob = jobs.find((j) => j.status === "Completed");
+  const lastCompletedJob = jobs.find((j) => j.status === "Completed" && !acknowledgedJobs.includes(j.booking_id));
   const completedTodayCount = jobs.filter((j) => j.status === "Completed").length;
   const todayPendingJobs = jobs.filter(
     (j) => j.status === "Assigned" || j.status === "Pending" || j.status === "In Progress"
@@ -451,6 +379,14 @@ export default function TechnicianDashboard() {
                 </div>
               ) : lastCompletedJob ? (
                 <div className="bg-gradient-to-br from-emerald-950/80 via-emerald-900/60 to-[#0A0B10]/80 border border-emerald-500/40 p-6 rounded-2xl backdrop-blur-md relative overflow-hidden shadow-2xl shadow-emerald-950/50">
+                  <button 
+                    onClick={() => setAcknowledgedJobs(prev => [...prev, lastCompletedJob.booking_id])}
+                    className="absolute top-4 right-4 p-2 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    title="Acknowledge & Clear"
+                  >
+                    <CheckCircle2 size={16} />
+                    <span className="text-xs font-bold font-inter">Clear Task</span>
+                  </button>
                   <div className="flex items-center gap-4 mb-3">
                     <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shrink-0">
                       <CheckCircle2 size={26} className="animate-bounce" />
