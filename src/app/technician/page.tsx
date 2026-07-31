@@ -49,6 +49,7 @@ export default function TechnicianDashboard() {
 
   // Tracking State
   const [isTracking, setIsTracking] = useState(false);
+  const [syncedStatus, setSyncedStatus] = useState<string | null>(null);
   const [completionSent, setCompletionSent] = useState(false);
 
   const handleFinishWork = async (bookingId: string) => {
@@ -132,7 +133,7 @@ export default function TechnicianDashboard() {
     }
   };
 
-  // Sync Polling
+  // Sync Polling - detects customer actions and auto-updates technician UI
   useEffect(() => {
     const activeJob = jobs.find((j) => j.status === "In Progress" || j.status === "Assigned");
     if (!activeJob) return;
@@ -148,6 +149,13 @@ export default function TechnicianDashboard() {
           // Auto-update DB status if customer confirmed arrival
           if (status === 'service_in_progress' && activeJob.status === 'Assigned') {
             handleUpdateStatus(activeJob.booking_id, "In Progress");
+          }
+          
+          // Auto-update DB status if customer confirmed completion
+          if (status === 'completed' && activeJob.status !== 'Completed') {
+            setJobs((prev) =>
+              prev.map((j) => (j.booking_id === activeJob.booking_id ? { ...j, status: "Completed" } : j))
+            );
           }
         }
       } catch (err) {
