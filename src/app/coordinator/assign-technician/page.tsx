@@ -338,7 +338,7 @@ const isMatchingTechnician = (
                   </p>
                 </div>
               ) : (
-                pendingBookings.map((booking) => (
+                (pendingBookings || []).map((booking) => (
                   <div
                     key={booking.booking_id}
                     className="bg-[#10121A] border border-[rgba(255,255,255,0.08)] hover:border-[#C8A55E]/40 rounded-2xl p-6 transition-all duration-200 backdrop-blur-xl shadow-lg relative overflow-hidden group"
@@ -450,7 +450,7 @@ const isMatchingTechnician = (
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-                  {availableTechnicians.map((tech) => (
+                  {(availableTechnicians || []).map((tech) => (
                     <div
                       key={tech.technician_id}
                       className="bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-xl p-4 flex items-start gap-3"
@@ -524,7 +524,7 @@ const isMatchingTechnician = (
                       </p>
                     )}
                     <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                      {modalTechnicians.map((tech) => {
+                      {(modalTechnicians || []).map((tech) => {
                         const isSelected = selectedTechnicianId === tech.technician_id;
                         return (
                           <div

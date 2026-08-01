@@ -149,6 +149,12 @@ export default function TechnicianDashboard() {
         if (data.success && data.data?.tracking) {
           const status = data.data.tracking.currentStatus;
           setSyncedStatus(status);
+
+          if (data.data.tracking.completionRequested) {
+            setCompletionSent(true);
+          } else {
+            setCompletionSent(false);
+          }
           
           // Auto-update DB status if customer confirmed arrival
           if (status === 'service_in_progress' && activeJob.status === 'Assigned') {
@@ -425,9 +431,26 @@ export default function TechnicianDashboard() {
                           )}
 
                           {syncedStatus === 'reached' && (
-                            <div className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2 animate-pulse w-full justify-center">
-                              <Clock size={12} />
-                              Awaiting customer to verify arrival...
+                            <div className="flex flex-col gap-2 w-full">
+                              <div className="text-xs font-semibold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg flex items-center gap-2 animate-pulse w-full justify-center">
+                                <Clock size={12} />
+                                Awaiting customer to verify arrival...
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await fetch(`${API_BASE}/tracking/${activeJob.booking_id}/confirm-arrival`, { method: 'POST' });
+                                    setSyncedStatus('service_in_progress');
+                                    handleUpdateStatus(activeJob.booking_id, "In Progress");
+                                  } catch (e) {
+                                    console.error(e);
+                                  }
+                                }}
+                                className="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-all active:scale-95 cursor-pointer w-full text-center flex items-center justify-center gap-1.5"
+                              >
+                                <Play size={12} />
+                                <span>Start Service</span>
+                              </button>
                             </div>
                           )}
                         </div>
@@ -512,7 +535,7 @@ export default function TechnicianDashboard() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {todayPendingJobs.map((job) => (
+                  {(todayPendingJobs || []).map((job) => (
                     <div
                       key={job.booking_id}
                       className="bg-[#14161E]/40 border border-[rgba(255,255,255,0.06)] p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4"
@@ -575,7 +598,7 @@ export default function TechnicianDashboard() {
                     No bookings scheduled for this date.
                   </p>
                 ) : (
-                  selectedDateSchedule.map((slot) => (
+                  (selectedDateSchedule || []).map((slot) => (
                     <div key={slot.booking_id} className="relative pl-6">
                       <div
                         className={`absolute left-0 top-1.5 w-3 h-3 rounded-full border-2 border-[#14161E] ${

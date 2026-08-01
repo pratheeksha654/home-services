@@ -28,28 +28,62 @@ export default function TrackBookingSelectionPage() {
     const fetchActiveTrackings = async () => {
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
-        // 1. Fetch all bookings
-        const bookingsRes = await fetch(`${API_URL}/bookings`);
-        const bookingsData = await bookingsRes.json();
-        
-        if (!bookingsRes.ok || !bookingsData.success || !Array.isArray(bookingsData.data?.bookings)) {
-          setLoading(false);
-          return;
+        const token = typeof window !== "undefined"
+          ? localStorage.getItem("homefixpro_token") || localStorage.getItem("token")
+          : null;
+
+        const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
+        // 1. Fetch normal bookings and emergency requests in parallel
+        const [bookingsRes, emergencyRes] = await Promise.all([
+          fetch(`${API_URL}/bookings`, { headers: authHeaders }),
+          fetch(`${API_URL}/emergency-requests`, { headers: authHeaders }).catch(() => null)
+        ]);
+
+        let normalBookings: any[] = [];
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json();
+          if (bookingsData.success && Array.isArray(bookingsData.data?.bookings)) {
+            normalBookings = bookingsData.data.bookings;
+          }
         }
 
-        // 2. Filter bookings: must belong to current customer and status must be Assigned, In Progress, or Completed
+        let emergencyBookings: any[] = [];
+        if (emergencyRes && emergencyRes.ok) {
+          const emergencyData = await emergencyRes.json();
+          const items = emergencyData.data?.emergencyRequests || emergencyData.data?.items || [];
+          if (Array.isArray(items)) {
+            emergencyBookings = items.map((e: any) => ({
+              booking_id: e.id,
+              service_category: e.serviceCategory || "Emergency Service",
+              email: e.customerEmail || e.email || "",
+              status: e.status,
+              assigned_technician: e.assigned_technician
+            }));
+          }
+        }
+
+        const allBookings = [...normalBookings, ...emergencyBookings];
+
+        // 2. Filter bookings: must belong to current customer and status must be active (Assigned, In Progress, or Completed)
         const userEmail = user.email?.trim().toLowerCase();
-        const activeUserBookings = bookingsData.data.bookings.filter((b: any) => {
-          const emailMatch = b.email?.trim().toLowerCase() === userEmail;
-          const statusMatch = b.status === 'Assigned' || b.status === 'In Progress' || b.status === 'Completed';
+        const activeStatuses = ['assigned', 'in progress', 'completed'];
+
+        const activeUserBookings = allBookings.filter((b: any) => {
+          const emailMatch = !userEmail || (b.email && b.email.trim().toLowerCase() === userEmail);
+          const statusLower = (b.status || '').toString().toLowerCase();
+          const statusMatch = activeStatuses.includes(statusLower) || Boolean(b.assigned_technician);
           return emailMatch && statusMatch;
         });
 
         // 3. For each active booking, query or initialize its tracking session
         const trackingList: ActiveBooking[] = [];
         for (const booking of activeUserBookings) {
+          const bId = booking.booking_id || booking.id;
+          if (!bId) continue;
+
           try {
-            const res = await fetch(`${API_URL}/tracking/${booking.booking_id}`);
+            const res = await fetch(`${API_URL}/tracking/${bId}`);
             const data = await res.json();
             if (res.ok && data.success && data.data?.tracking) {
               const t = data.data.tracking;
@@ -58,11 +92,11 @@ export default function TrackBookingSelectionPage() {
                 technicianName: t.technicianName,
                 currentStatus: t.currentStatus,
                 statusLabel: t.statusLabel,
-                serviceCategory: booking.service_category
+                serviceCategory: booking.service_category || "Service"
               });
             }
           } catch (err) {
-            console.error(`Error fetching tracking for ${booking.booking_id}:`, err);
+            console.error(`Error fetching tracking for ${bId}:`, err);
           }
         }
         setActiveBookings(trackingList);
@@ -100,7 +134,7 @@ export default function TrackBookingSelectionPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {activeBookings.map((booking) => (
+            {(activeBookings || []).map((booking) => (
               <div
                 key={booking.bookingId}
                 className="bg-[#14161E]/40 hover:bg-[#14161E]/70 border border-[rgba(255,255,255,0.06)] rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-all group"
