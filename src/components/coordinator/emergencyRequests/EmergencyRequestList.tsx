@@ -17,7 +17,7 @@ function matchesRequestCategory(
     return technician.availabilityStatus === "Available";
   }
 
-  return technician.serviceCategories.includes(serviceCategory);
+  return (technician.serviceCategories || []).includes(serviceCategory);
 }
 
 export default function EmergencyRequestList({
@@ -32,7 +32,7 @@ export default function EmergencyRequestList({
 
   return (
     <div className="mt-8 space-y-6">
-      {requests.map((request) => {
+      {(requests || []).map((request) => {
         const matching = technicians.filter((tech) =>
           matchesRequestCategory(tech, request.serviceCategory)
         );

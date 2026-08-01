@@ -60,7 +60,7 @@ export default function TechnicianAvailability({
 
       {/* Service categories */}
       <div className="flex flex-wrap gap-1.5">
-        {technician.serviceCategories.map((cat) => (
+        {(technician.serviceCategories || []).map((cat) => (
           <span
             key={cat}
             className="rounded-md border border-[#C8A55E]/15 bg-[#C8A55E]/5 px-2 py-0.5 text-[10px] font-medium text-[#C8A55E]"

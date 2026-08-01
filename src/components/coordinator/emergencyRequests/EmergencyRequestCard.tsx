@@ -174,7 +174,7 @@ export default function EmergencyRequestCard({
             </div>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {matchingTechnicians.map((tech) => (
+              {(matchingTechnicians || []).map((tech) => (
                 <TechnicianAvailability
                   key={tech.id}
                   technician={tech}

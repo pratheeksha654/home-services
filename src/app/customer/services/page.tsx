@@ -383,7 +383,7 @@ export default function CustomerServicesPage() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {filteredServices.map((item, index) => {
+                        {(filteredServices || []).map((item, index) => {
                             const bId = item.booking_id || `srv-${index}`;
                             const title = item.service_category || "Home Service";
                             const date = item.preferred_date || "N/A";
