@@ -1,210 +1,76 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import GlassInput from "@/components/ui/GlassInput";
-import GlassButton from "@/components/ui/GlassButton";
-import Divider from "@/components/ui/Divider";
 import BrandLogo from "@/components/ui/BrandLogo";
-import {
-  MailIcon,
-  LockIcon,
-  EyeIcon,
-  EyeOffIcon,
-  GoogleIcon,
-} from "@/components/icons/Icons";
-
-const REMEMBER_KEY = "homefixpro_remember_email";
+import { GoogleIcon } from "@/components/icons/Icons";
+import { ShieldCheck } from "lucide-react";
 
 export default function LoginForm() {
-  const { login } = useAuth();
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const { loginWithGoogle } = useAuth();
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /* ── Load saved email on mount ─────────────────────────────── */
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(REMEMBER_KEY);
-      if (saved) {
-        setEmail(saved);
-        setRememberMe(true);
-      }
-    } catch {
-      // localStorage unavailable (SSR / private mode)
-    }
-  }, []);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const handleGoogleAuth = async () => {
     setError("");
     setIsSubmitting(true);
-
-    // Persist or clear remembered email
     try {
-      if (rememberMe) {
-        localStorage.setItem(REMEMBER_KEY, email);
-      } else {
-        localStorage.removeItem(REMEMBER_KEY);
+      const res = await loginWithGoogle();
+      if (res && !res.success) {
+        setError(res.error || "Authentication failed.");
+        setIsSubmitting(false);
       }
-    } catch {
-      // ignore
-    }
-
-    const result = await login(email, password);
-    if (!result.success) {
-      setError(result.error || "Login failed.");
+    } catch (err: any) {
+      setError(err?.message || "An error occurred.");
       setIsSubmitting(false);
     }
-  }
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-[420px] mx-auto lg:mx-0">
-      {/* ── Header ────────────────────────────────────────────── */}
-      <div className="space-y-4 mb-6">
-        {/* Mobile-only logo */}
-        <div className="lg:hidden animate-fade-in-up">
-          <BrandLogo size="md" variant="gold" />
+    <div className="w-full max-w-[420px]">
+      <div className="relative rounded-3xl border border-white/10 bg-black/40 p-8 sm:p-10 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col items-center text-center">
+
+        <div className="w-full relative z-10 flex flex-col items-center">
+          {/* Minimalist Heading */}
+          <div className="mb-8 space-y-1.5">
+            <h1 className="text-[22px] font-heading font-semibold text-white tracking-wide drop-shadow-sm">
+              Access Your Account
+            </h1>
+            <p className="text-sm text-white/60 font-light">
+              Quick and secure sign in
+            </p>
+          </div>
+
+          {/* Error Alert */}
+          {error && (
+            <div className="w-full mb-6 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-xs text-rose-300">
+              {error}
+            </div>
+          )}
+
+          {/* Standard Sized Premium Google Button */}
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={handleGoogleAuth}
+            className="w-full group overflow-hidden py-3.5 px-6 rounded-xl bg-white hover:bg-gray-50 text-gray-900 shadow-xl hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all duration-300 flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <GoogleIcon size={22} className="shrink-0" />
+            <span className="text-[15px] font-semibold tracking-wide font-inter">
+              {isSubmitting ? "Connecting..." : "Continue with Google"}
+            </span>
+          </button>
         </div>
 
-        <div className="space-y-2">
-          <h1 className="text-2xl sm:text-[28px] font-heading font-bold tracking-tight text-text-primary animate-fade-in-up">
-            Welcome Back
-          </h1>
-          <p className="text-sm text-text-secondary leading-relaxed animate-fade-in-up-delay-1">
-            Log in to manage your home services.
+        {/* Bottom text */}
+        <div className="relative z-10 mt-8 pt-6 border-t border-white/10 w-full flex flex-col items-center gap-2.5">
+
+          <p className="text-[11px] text-white/30 text-center px-2 leading-relaxed">
+            By continuing, you agree to FixNest's Terms of Service and Privacy Policy.
           </p>
         </div>
+
       </div>
-
-      {/* ── Error Alert ────────────────────────────────────────── */}
-      {error && (
-        <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400 animate-fade-in-up">
-          {error}
-        </div>
-      )}
-
-      {/* ── Form Fields ───────────────────────────────────────── */}
-      <div className="space-y-4 animate-fade-in-up-delay-2">
-        <GlassInput
-          id="login-email"
-          label="Email Address"
-          type="email"
-          placeholder="john@example.com"
-          icon={<MailIcon />}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <GlassInput
-          id="login-password"
-          label="Password"
-          type={showPassword ? "text" : "password"}
-          placeholder="••••••••"
-          icon={<LockIcon />}
-          rightIcon={showPassword ? <EyeOffIcon /> : <EyeIcon />}
-          onRightIconClick={() => setShowPassword(!showPassword)}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </div>
-
-      {/* ── Remember Me + Forgot Password ─────────────────────── */}
-      <div className="flex items-center justify-between mt-4 animate-fade-in-up-delay-2">
-        <label
-          htmlFor="remember-me"
-          className="flex items-center gap-2.5 cursor-pointer group"
-        >
-          <input
-            id="remember-me"
-            type="checkbox"
-            checked={rememberMe}
-            onChange={(e) => setRememberMe(e.target.checked)}
-            className="sr-only"
-          />
-          <span
-            className={`
-              flex h-[18px] w-[18px] items-center justify-center rounded-md
-              border transition-all duration-300
-              group-hover:border-border-hover
-              ${
-                rememberMe
-                  ? "border-gold bg-gold/10"
-                  : "border-border bg-surface"
-              }
-            `}
-          >
-            <svg
-              className={`h-3 w-3 text-gold transition-all duration-200 ${
-                rememberMe ? "opacity-100 scale-100" : "opacity-0 scale-75"
-              }`}
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M2.5 6.5L5 9l4.5-6" />
-            </svg>
-          </span>
-          <span className="text-xs text-text-secondary select-none">
-            Remember me
-          </span>
-        </label>
-
-        <a
-          href="#"
-          id="forgot-password-link"
-          className="text-xs font-semibold text-gold hover:text-gold-light transition-colors duration-300 underline underline-offset-4 decoration-gold/25 hover:decoration-gold-light/40"
-        >
-          Forgot password?
-        </a>
-      </div>
-
-      {/* ── Log In Button ─────────────────────────────────────── */}
-      <div className="mt-6 animate-fade-in-up-delay-3">
-        <GlassButton
-          id="login-button"
-          variant="primary"
-          fullWidth
-          type="submit"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Logging in…" : "Log In"}
-        </GlassButton>
-      </div>
-
-      {/* ── Divider + Google ──────────────────────────────────── */}
-      <div className="mt-4 space-y-3 animate-fade-in-up-delay-4">
-        <Divider text="OR" />
-
-        <GlassButton
-          id="google-login"
-          variant="secondary"
-          fullWidth
-          onClick={() => { }}
-        >
-          <GoogleIcon size={18} />
-          <span>Continue with Google</span>
-        </GlassButton>
-      </div>
-
-      {/* ── Footer Link ───────────────────────────────────────── */}
-      <p className="text-center text-sm text-text-secondary mt-6 animate-fade-in-up-delay-5">
-        Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          id="signup-link"
-          className="font-semibold text-gold hover:text-gold-light transition-colors duration-300 underline underline-offset-4 decoration-gold/25 hover:decoration-gold-light/40"
-        >
-          Sign up
-        </Link>
-      </p>
-    </form>
+    </div>
   );
 }

@@ -31,7 +31,7 @@ export default function QuickActions() {
           <ActionCard
             title="Book Service"
             description="Schedule a technician for regular home repair and maintenance services."
-            href="/customer/book-service"
+            href="/customer/book"
             accent="gold"
             icon={<CalendarPlus size={34} />}
           />

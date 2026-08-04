@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 export default function NavbarWrapper() {
     const pathname = usePathname();
 
-    // Hide Navbar on onboarding, role selection, and details pages
+    // Hide Navbar during onboarding flows
     const shouldHideNavbar =
         pathname.startsWith("/onboarding") ||
         pathname.startsWith("/details");

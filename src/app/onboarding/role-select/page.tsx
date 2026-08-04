@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, UserRole } from "@/context/AuthContext";
+import { useAuth, UserRole, getRoleBasedRoute } from "@/context/AuthContext";
 import AuthGuard from "@/components/auth/AuthGuard";
 
 /* ── Step Indicator ─────────────────────────────────────────────── */
@@ -13,10 +13,10 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
         <React.Fragment key={i}>
           <div
             className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold font-outfit transition-all duration-300 ${i + 1 === current
-                ? "bg-gradient-to-br from-[#C8A55E] to-[#A08844] text-[#08090D] shadow-lg shadow-[#C8A55E]/30"
-                : i + 1 < current
-                  ? "bg-[#C8A55E]/20 text-[#C8A55E] border border-[#C8A55E]/40"
-                  : "bg-[#14161E] text-[#5C6070] border border-[rgba(255,255,255,0.06)]"
+              ? "bg-gradient-to-br from-[#C8A55E] to-[#A08844] text-[#08090D] shadow-lg shadow-[#C8A55E]/30"
+              : i + 1 < current
+                ? "bg-[#C8A55E]/20 text-[#C8A55E] border border-[#C8A55E]/40"
+                : "bg-[#14161E] text-[#5C6070] border border-[rgba(255,255,255,0.06)]"
               }`}
           >
             {i + 1 < current ? (
@@ -30,8 +30,8 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
           {i < total - 1 && (
             <div
               className={`flex-1 h-px transition-all duration-500 ${i + 1 < current
-                  ? "bg-gradient-to-r from-[#C8A55E]/60 to-[#C8A55E]/20"
-                  : "bg-[rgba(255,255,255,0.06)]"
+                ? "bg-gradient-to-r from-[#C8A55E]/60 to-[#C8A55E]/20"
+                : "bg-[rgba(255,255,255,0.06)]"
                 }`}
             />
           )}
@@ -189,10 +189,17 @@ function RoleCard({
 
 /* ── Inner Content Component ────────────────────────────────────── */
 function RoleSelectContent() {
-  const { setRole, completeOnboarding } = useAuth();
+  const { user, isLoading, setRole, completeOnboarding } = useAuth();
   const router = useRouter();
   const [selected, setSelected] = useState<"CUSTOMER" | "TECHNICIAN_PENDING" | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Redirect already-registered users to their role-based home page
+  useEffect(() => {
+    if (!isLoading && user?.onboardingCompleted) {
+      router.replace(getRoleBasedRoute(user.role));
+    }
+  }, [isLoading, user, router]);
 
   const handleSelect = async (role: "CUSTOMER" | "TECHNICIAN_PENDING") => {
     if (loading) return;
@@ -213,9 +220,9 @@ function RoleSelectContent() {
         }
 
         // 4. Navigate to dashboard using replace to clear history stack
-        router.replace("/dashboard");
+        router.replace("/customer");
       } else {
-        router.push("/onboarding/technician");
+        router.push("/technician/apply");
       }
     } catch (error) {
       console.error("Error during selection:", error);

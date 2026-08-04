@@ -1,39 +1,44 @@
+"use client";
+
 import Image from "next/image";
+import Link from "next/link";
+import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
 
 interface BrandLogoProps {
   size?: "sm" | "md" | "lg";
   variant?: "light" | "gold";
+  href?: string;
 }
 
-export default function BrandLogo({ size = "md", variant = "gold" }: BrandLogoProps) {
-  const dimensions = {
-    sm: { img: 28, text: "text-base" },
-    md: { img: 36, text: "text-lg" },
-    lg: { img: 44, text: "text-2xl" },
+export default function BrandLogo({
+  size = "md",
+  variant = "gold",
+  href,
+}: BrandLogoProps) {
+  const { user } = useAuth();
+  const targetHref = href || (user?.role ? getRoleBasedRoute(user.role) : "/login");
+
+  // Mapping sizes for flexibility if needed
+  const logoDimensions = {
+    sm: { width: 100, height: 40 },
+    md: { width: 150, height: 60 },
+    lg: { width: 200, height: 80 },
   };
 
-  const { img, text } = dimensions[size];
-
-  const textColor =
-    variant === "gold"
-      ? "bg-gradient-to-r from-gold to-gold-light bg-clip-text text-transparent"
-      : "text-text-primary";
+  const { width, height } = logoDimensions[size];
 
   return (
     <div className="flex items-center gap-2.5">
-      <div className="relative">
+      <Link href={targetHref} className="flex items-center gap-2.5 group flex-shrink-0">
         <Image
-          src="/logo.png"
-          alt="HomeFixPro Logo"
-          width={img}
-          height={img}
-          className="drop-shadow-[0_0_10px_rgba(200,165,94,0.2)]"
+          src="/logo2.png"
+          alt="FixNest Logo"
+          width={width}
+          height={height}
           priority
+          className="object-contain mix-blend-screen h-auto"
         />
-      </div>
-      <span className={`${text} font-heading font-bold tracking-tight ${textColor}`}>
-        HomeFixPro
-      </span>
+      </Link>
     </div>
   );
 }
