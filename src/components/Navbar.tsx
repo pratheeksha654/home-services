@@ -2,63 +2,42 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+<<<<<<< Updated upstream
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+=======
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
+>>>>>>> Stashed changes
 
-/* ── Role Badge Component ────────────────────────────────────────── */
-function RoleBadge({ role }: { role: string }) {
-  const config: Record<
-    string,
-    { label: string; color: string; bg: string; border: string }
-  > = {
-    CUSTOMER: {
-      label: "Customer",
-      color: "#C8A55E",
-      bg: "#C8A55E14",
-      border: "#C8A55E30",
-    },
-    TECHNICIAN: {
-      label: "Technician",
-      color: "#34D399",
-      bg: "#34D39914",
-      border: "#34D39930",
-    },
-    TECHNICIAN_PENDING: {
-      label: "Pending Review",
-      color: "#FBBF24",
-      bg: "#FBBF2414",
-      border: "#FBBF2430",
-    },
-    COORDINATOR: {
-      label: "Coordinator",
-      color: "#818CF8",
-      bg: "#818CF814",
-      border: "#818CF830",
-    },
-    ADMIN: {
-      label: "Admin",
-      color: "#F87171",
-      bg: "#F8717114",
-      border: "#F8717130",
-    },
-  };
+import { NavLink } from "./navbar/NavLink";
+import { ProfileDropdown } from "./navbar/ProfileDropdown";
+import { MobileMenu } from "./navbar/MobileMenu";
+import { getNavLinksForRole, isNavItemActive } from "@/lib/navConfig";
 
+<<<<<<< Updated upstream
   const c = config[role] || config.CUSTOMER;
+=======
+function getNotificationRoute(role?: string | null): string {
+  const normalizedRole = role ? role.toUpperCase().trim() : "CUSTOMER";
+>>>>>>> Stashed changes
 
-  return (
-    <span
-      className="inline-block text-[10px] font-semibold font-mono tracking-wider px-2.5 py-0.5 rounded-full"
-      style={{
-        color: c.color,
-        background: c.bg,
-        border: `1px solid ${c.border}`,
-      }}
-    >
-      {c.label}
-    </span>
-  );
+  switch (normalizedRole) {
+    case "ADMIN":
+      return "/admin/notifications";
+    case "TECHNICIAN":
+    case "TECHNICIAN_PENDING":
+      return "/technician/notifications";
+    case "COORDINATOR":
+      return "/coordinator/notifications";
+    case "CUSTOMER":
+    default:
+      return "/customer/notifications";
+  }
 }
 
+<<<<<<< Updated upstream
 /* ── Nav Link Component ──────────────────────────────────────────── */
 function NavLink({
   href,
@@ -120,17 +99,22 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 /* ── Main Navbar Component ───────────────────────────────────────── */
+=======
+>>>>>>> Stashed changes
 export default function Navbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Hide Navbar on specific authentication and onboarding routes
   const hiddenRoutes = [
     "/login",
+<<<<<<< Updated upstream
     "/signup",
+=======
+>>>>>>> Stashed changes
     "/onboarding/details",
     "/onboarding/role-select",
     "/onboarding/technician",
@@ -140,14 +124,12 @@ export default function Navbar() {
     (r) => pathname === r || pathname.startsWith(r)
   );
 
-  // Handle scroll effect
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handler, { passive: true });
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (
@@ -156,28 +138,40 @@ export default function Navbar() {
       ) {
         setDropdownOpen(false);
       }
+<<<<<<< Updated upstream
+=======
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(e.target as Node)
+      ) {
+        setMobileMenuOpen(false);
+      }
+>>>>>>> Stashed changes
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  if (shouldHideNavbar) {
-    return null;
-  }
+  if (shouldHideNavbar) return null;
 
   const isLoggedIn = Boolean(user);
+<<<<<<< Updated upstream
   const role = user?.role;
+=======
+  const role = user?.role ? user.role.toUpperCase().trim() : null;
+  const notificationPath = getNotificationRoute(role);
+>>>>>>> Stashed changes
 
-  // Extract avatar initials
   const initials = user?.name
     ? user.name
       .split(" ")
       .slice(0, 2)
-      .map((w) => w[0])
+      .map((w: string) => w[0])
       .join("")
       .toUpperCase()
     : user?.email?.charAt(0).toUpperCase() || "U";
 
+<<<<<<< Updated upstream
   // Render navigation links dynamically by role
   const renderNavLinks = () => {
     const common = (
@@ -259,6 +253,9 @@ export default function Navbar() {
 
     return common;
   };
+=======
+  const navItems = getNavLinksForRole(isLoggedIn ? role : null);
+>>>>>>> Stashed changes
 
   return (
     <nav
@@ -268,6 +265,7 @@ export default function Navbar() {
         } backdrop-blur-xl`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between relative">
+<<<<<<< Updated upstream
         {/* ================= LEFT: BRAND LOGO ================= */}
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
@@ -294,40 +292,85 @@ export default function Navbar() {
               />
             </>
           )}
+=======
+        {/* Brand Logo */}
+        <Link
+          href={isLoggedIn && role ? getRoleBasedRoute(role) : "/login"}
+          className="flex items-center gap-2.5 group flex-shrink-0"
+        >
+          <Image
+            src="/logo2.png"
+            alt="FixNest Logo"
+            width={150}
+            height={60}
+            className="object-contain"
+          />
+        </Link>
+
+        {/* Desktop Dynamic Navigation Links */}
+        <div className="hidden lg:flex items-center gap-8">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              gold={item.gold}
+              active={isNavItemActive(item.href, pathname)}
+            />
+          ))}
+>>>>>>> Stashed changes
         </div>
 
-        {/* ================= RIGHT: AUTH STATE & PROFILE ================= */}
+        {/* Right Actions */}
         <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+<<<<<<< Updated upstream
+=======
+          <MobileMenu
+            isLoggedIn={isLoggedIn}
+            user={user}
+            role={role}
+            initials={initials}
+            pathname={pathname}
+            notificationPath={notificationPath}
+            mobileMenuOpen={mobileMenuOpen}
+            mobileMenuRef={mobileMenuRef}
+            setMobileMenuOpen={setMobileMenuOpen}
+            logout={logout}
+          />
+
+>>>>>>> Stashed changes
           {isLoggedIn ? (
             <>
-              {/* Pending Status Pill for Technicians */}
-              {role === "TECHNICIAN_PENDING" && (
-                <Link href="/onboarding/technician" className="hidden sm:flex">
-                  <PendingStatusPill />
-                </Link>
-              )}
-
-              {/* Notification Bell */}
-              <button
+              <Link
+                href={notificationPath}
                 id="navbar-notifications"
                 aria-label="Notifications"
-                className="relative text-[#9CA0AE] hover:text-[#ECEDF0] p-2 rounded-xl bg-[#14161E]/40 hover:bg-[#14161E] border border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.1)] transition-all duration-200 focus:outline-none hidden sm:flex"
+                className="relative text-[#9CA0AE] hover:text-[#ECEDF0] p-2 rounded-xl bg-[#14161E]/40 hover:bg-[#14161E] border border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.1)] transition-all duration-200 focus:outline-none hidden sm:flex items-center justify-center"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.8}
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-[#C8A55E] rounded-full" />
+              </Link>
+
+              <ProfileDropdown
+                user={user}
+                role={role}
+                initials={initials}
+                dropdownOpen={dropdownOpen}
+                dropdownRef={dropdownRef}
+                setDropdownOpen={setDropdownOpen}
+                logout={logout}
+              />
+
+              <button
+                type="button"
+                onClick={logout}
+                className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-300 hover:text-rose-200 text-xs font-semibold font-inter transition-all duration-200"
+              >
+                <span>Log Out</span>
               </button>
+<<<<<<< Updated upstream
 
               {/* User Avatar Button & Dropdown */}
               <div className="relative" ref={dropdownRef}>
@@ -491,6 +534,16 @@ export default function Navbar() {
                 <span className="relative z-10">Sign Up</span>
               </Link>
             </div>
+=======
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="relative group overflow-hidden text-sm font-semibold font-inter text-[#08090D] bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] px-5 py-2 rounded-xl shadow-md hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all duration-200 active:scale-[0.98]"
+            >
+              <span>Sign In</span>
+            </Link>
+>>>>>>> Stashed changes
           )}
         </div>
       </div>
