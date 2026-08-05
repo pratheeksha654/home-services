@@ -26,7 +26,7 @@ export const ROLE_NAV_LINKS: Record<string, NavItem[]> = {
     TECHNICIAN: [
         { href: "/technician", label: "Home" },
         { href: "/about", label: "About Us" },
-        { href: "/technician/jobs", label: "Active Jobs" },
+        { href: "/technician/activejobs", label: "Active Jobs" },
         { href: "/technician/schedule", label: "Schedule" },
         { href: "/earnings", label: "Earnings" },
     ],
