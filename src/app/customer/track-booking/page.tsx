@@ -11,6 +11,7 @@ interface ActiveBooking {
   currentStatus: string;
   statusLabel: string;
   serviceCategory: string;
+  assignedTechnician?: string | null;
 }
 
 export default function TrackBookingSelectionPage() {
@@ -89,7 +90,10 @@ export default function TrackBookingSelectionPage() {
               const t = data.data.tracking;
               trackingList.push({
                 bookingId: t.bookingId,
-                technicianName: t.technicianName,
+                technicianName:
+                  (t.technicianName && t.technicianName !== 'Unassigned Technician')
+                    ? t.technicianName
+                    : (booking.technicianName || booking.technician_name || 'Technician Assigned'),
                 currentStatus: t.currentStatus,
                 statusLabel: t.statusLabel,
                 serviceCategory: booking.service_category || "Service"
