@@ -3,7 +3,7 @@
 import { useEffect, useState, use, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Clock, CheckCircle2, Navigation, MapPin, Truck, Wrench, PartyPopper, Play, Pause, RotateCcw, Sparkles, ChevronRight } from 'lucide-react';
+import { Clock, CheckCircle2, Navigation, MapPin, Truck, Wrench, PartyPopper, Sparkles, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const TrackingMap = dynamic(() => import('@/components/TrackingMap'), { 
@@ -118,7 +118,6 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
   }, [tracking?.currentStatus, router]);
   // Confirm arrival & start service
   const [confirmingArrival, setConfirmingArrival] = useState(false);
-  const [showCompletionConfirm, setShowCompletionConfirm] = useState(false);
   const handleConfirmArrival = async () => {
     setConfirmingArrival(true);
     try {
@@ -244,60 +243,32 @@ export default function TrackingPage({ params }: { params: Promise<{ bookingId: 
                 animate={{ opacity: 1, scale: 1 }}
                 className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 border border-indigo-500/40 rounded-3xl p-6 text-center text-white shadow-2xl shadow-indigo-950/60"
               >
-                {!showCompletionConfirm ? (
-                  <>
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-3 border border-indigo-500/30">
-                      <CheckCircle2 size={28} className="animate-bounce" />
-                    </div>
-                    <h4 className="text-lg font-bold text-white font-outfit">Technician Finished Work!</h4>
-                    <p className="text-xs text-indigo-200/80 mt-1 mb-5">
-                      Your technician has marked the service as finished. Please verify: Is the service completed?
-                    </p>
-                    <button
-                      onClick={() => setShowCompletionConfirm(true)}
-                      className="w-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-bold py-3.5 px-6 rounded-2xl text-sm shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Sparkles size={16} />
-                      <span>Yes, Confirm Service Completed</span>
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3 border border-emerald-500/30">
-                      <ShieldCheck size={28} className="animate-pulse" />
-                    </div>
-                    <h4 className="text-lg font-bold text-white font-outfit">Confirm Service Completion</h4>
-                    <p className="text-xs text-[#9CA0AE] mt-1 mb-5">
-                      Are you sure you want to confirm that this service has been fully completed?
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(`${API_URL}/tracking/${resolvedParams.bookingId}/complete`, { method: "POST" });
-                            const data = await res.json();
-                            if (data.success && data.data?.tracking) {
-                              setTracking(data.data.tracking);
-                            }
-                          } catch (e) {
-                            console.error("Error completing service:", e);
-                          } finally {
-                            setShowCompletionConfirm(false);
-                          }
-                        }}
-                        className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-6 rounded-2xl text-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-                      >
-                        Confirm Completed
-                      </button>
-                      <button
-                        onClick={() => setShowCompletionConfirm(false)}
-                        className="w-full bg-[#14161E] hover:bg-[#1A1D28] text-white border border-[rgba(255,255,255,0.08)] font-bold py-3 px-6 rounded-2xl text-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </>
-                )}
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto mb-3 border border-indigo-500/30">
+                  <CheckCircle2 size={28} className="animate-bounce" />
+                </div>
+                <h4 className="text-lg font-bold text-white font-outfit">Technician Finished Work!</h4>
+                <p className="text-xs text-indigo-200/80 mt-1 mb-5">
+                  Your technician has marked the service as finished. Please verify: Is the service completed?
+                </p>
+                <button
+                  onClick={async () => {
+                    if (window.confirm("Is the service completed?")) {
+                      try {
+                        const res = await fetch(`${API_URL}/tracking/${resolvedParams.bookingId}/complete`, { method: "POST" });
+                        const data = await res.json();
+                        if (data.success && data.data?.tracking) {
+                          setTracking(data.data.tracking);
+                        }
+                      } catch (e) {
+                        console.error("Error completing service:", e);
+                      }
+                    }
+                  }}
+                  className="w-full bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-bold py-3.5 px-6 rounded-2xl text-sm shadow-lg shadow-indigo-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <Sparkles size={16} />
+                  <span>Yes, Confirm Service Completed</span>
+                </button>
               </motion.div>
             ) : (
               <>
