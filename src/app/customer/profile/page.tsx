@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { Edit2, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 
 // Matches exact fields from your 'profiles' database table
 interface ProfileData {
@@ -29,7 +30,17 @@ export default function CustomerProfilePage() {
         avatar: "",
     });
 
+    // Dedicated Form State for editing (matches technician profile pattern)
+    const [formData, setFormData] = useState({
+        name: "",
+        phone: "",
+        street: "",
+        city: "",
+        postalCode: "",
+    });
+
     const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
@@ -68,59 +79,58 @@ export default function CustomerProfilePage() {
     };
 
     // 1. FETCH FROM PROFILES TABLE
-    useEffect(() => {
-        async function fetchProfile() {
-            try {
-                setIsLoading(true);
-                setErrorMessage("");
+    const fetchProfile = async () => {
+        try {
+            setIsLoading(true);
+            setErrorMessage("");
 
-                const token = getStoredToken();
+            const token = getStoredToken();
 
-                if (!token) {
-                    setErrorMessage("No authentication token found in browser session. Please log in.");
-                    setIsLoading(false);
-                    return;
-                }
-
-                const res = await fetch(`${API_BASE_URL}/user/profile`, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (!res.ok) {
-                    const errorData = await res.json().catch(() => ({}));
-                    throw new Error(errorData.message || `Failed to fetch profile (${res.status})`);
-                }
-
-                const responseData = await res.json();
-
-                // Extract profile data from backend response
-                const profileObj = responseData?.data?.user || responseData?.data || responseData;
-
-                // Directly map columns from the 'profiles' table
-                setProfile({
-                    id: profileObj.id || "",
-                    name: profileObj.name || "",
-                    email: profileObj.email || "",
-                    phone: profileObj.phone || "",
-                    gender: profileObj.gender || "",
-                    role: profileObj.role || "customer",
-                    street: profileObj.street || "",
-                    city: profileObj.city || "",
-                    postalCode: profileObj.postalCode || "",
-                    avatar: profileObj.avatar || "",
-                });
-            } catch (err: any) {
-                console.error("Profile Fetch Error:", err.message);
-                setErrorMessage(err.message || "Failed to load profile data.");
-            } finally {
+            if (!token) {
+                setErrorMessage("No authentication token found in browser session. Please log in.");
                 setIsLoading(false);
+                return;
             }
-        }
 
+            const res = await fetch(`${API_BASE_URL}/user/profile`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.message || `Failed to fetch profile (${res.status})`);
+            }
+
+            const responseData = await res.json();
+            const profileObj = responseData?.data?.user || responseData?.data || responseData;
+
+            const loadedData: ProfileData = {
+                id: profileObj.id || "",
+                name: profileObj.name || "",
+                email: profileObj.email || "",
+                phone: profileObj.phone || "",
+                gender: profileObj.gender || "",
+                role: profileObj.role || "customer",
+                street: profileObj.street || "",
+                city: profileObj.city || "",
+                postalCode: profileObj.postalCode || "",
+                avatar: profileObj.avatar || "",
+            };
+
+            setProfile(loadedData);
+        } catch (err: any) {
+            console.error("Profile Fetch Error:", err.message);
+            setErrorMessage(err.message || "Failed to load profile data.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchProfile();
     }, [API_BASE_URL]);
 
@@ -131,6 +141,31 @@ export default function CustomerProfilePage() {
             }
         };
     }, []);
+
+    // Toggle Edit Mode & Initialize/Reset Form Data
+    const handleEditToggle = () => {
+        if (!isEditing) {
+            setFormData({
+                name: profile.name || "",
+                phone: profile.phone || "",
+                street: profile.street || "",
+                city: profile.city || "",
+                postalCode: profile.postalCode || "",
+            });
+        }
+        setIsEditing(!isEditing);
+        setErrorMessage("");
+        setSaveSuccess(false);
+    };
+
+    // Generic Form Change Handler
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
 
     // Handle Local Image Upload Preview
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,12 +190,14 @@ export default function CustomerProfilePage() {
         e.preventDefault();
         setErrorMessage("");
         setSaveSuccess(false);
+        setIsSaving(true);
 
         try {
             const token = getStoredToken();
 
             if (!token) {
                 setErrorMessage("Authentication token missing. Please log in again.");
+                setIsSaving(false);
                 return;
             }
 
@@ -180,7 +217,9 @@ export default function CustomerProfilePage() {
 
                 const uploadData = await uploadRes.json().catch(() => ({}));
                 if (!uploadRes.ok || uploadData.success === false) {
-                    throw new Error(uploadData.message || `Failed to upload profile image (${uploadRes.status})`);
+                    throw new Error(
+                        uploadData.message || `Failed to upload profile image (${uploadRes.status})`
+                    );
                 }
 
                 const uploadedAvatarUrl =
@@ -200,14 +239,13 @@ export default function CustomerProfilePage() {
                 avatarUrl = uploadedAvatarUrl;
             }
 
-            // Payload mapped directly to 'profiles' table columns
             const payload = {
-                name: profile.name,
-                phone: profile.phone,
+                name: formData.name,
+                phone: formData.phone,
                 gender: profile.gender,
-                street: profile.street,
-                city: profile.city,
-                postalCode: profile.postalCode,
+                street: formData.street,
+                city: formData.city,
+                postalCode: formData.postalCode,
                 avatar: avatarUrl,
             };
 
@@ -228,7 +266,7 @@ export default function CustomerProfilePage() {
                     const parsed = JSON.parse(errorBody);
                     if (parsed.message) msg = parsed.message;
                 } catch {
-                    // raw text already logged above
+                    // Raw text fallback
                 }
                 throw new Error(msg);
             }
@@ -236,7 +274,7 @@ export default function CustomerProfilePage() {
             const responseData = await res.json();
             const updatedUser = responseData?.data?.user || responseData?.data || responseData;
 
-            // Update UI state immediately with saved profile data
+            // Update base profile state with newly returned server data
             setProfile((prev) => ({
                 ...prev,
                 name: updatedUser.name ?? prev.name,
@@ -260,16 +298,16 @@ export default function CustomerProfilePage() {
             setTimeout(() => setSaveSuccess(false), 3000);
         } catch (err: any) {
             setErrorMessage(err.message || "Something went wrong while saving.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-[#08090D] text-white flex items-center justify-center font-inter">
-                <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 border-2 border-[#C8A55E] border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs text-[#9CA0AE]">Fetching user profile...</span>
-                </div>
+            <div className="min-h-screen bg-[#08090D] text-white flex flex-col items-center justify-center font-inter gap-3">
+                <RefreshCw className="w-8 h-8 text-[#C8A55E] animate-spin" />
+                <span className="text-sm font-medium text-[#9CA0AE]">Loading profile details...</span>
             </div>
         );
     }
@@ -277,7 +315,6 @@ export default function CustomerProfilePage() {
     return (
         <div className="min-h-screen bg-[#08090D] text-[#ECEDF0] py-10 px-4 sm:px-6 lg:px-8 font-inter">
             <div className="max-w-3xl mx-auto space-y-8">
-
                 <div className="text-center sm:text-left">
                     <h1 className="text-3xl font-bold text-white font-outfit tracking-tight">
                         Account Profile
@@ -287,79 +324,91 @@ export default function CustomerProfilePage() {
                     </p>
                 </div>
 
+                {/* Alerts */}
                 {saveSuccess && (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs flex items-center gap-2">
-                        <span>✅</span>
-                        <span>Profile details updated in database!</span>
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs flex items-center gap-2 font-medium">
+                        <CheckCircle2 className="w-5 h-5 shrink-0" />
+                        <span>Profile details updated successfully!</span>
                     </div>
                 )}
 
                 {errorMessage && (
-                    <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs flex items-center gap-2">
-                        <span>⚠️</span>
+                    <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs flex items-center gap-2 font-medium">
+                        <AlertCircle className="w-5 h-5 shrink-0" />
                         <span>{errorMessage}</span>
                     </div>
                 )}
 
-                <div className="bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 sm:p-8 backdrop-blur-xl space-y-8">
+                <div className="bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 sm:p-8 backdrop-blur-xl space-y-8 shadow-2xl">
+                    {/* Header Section (Avatar & Edit Button Top-Right) */}
+                    <div className="flex items-start justify-between pb-6 border-b border-[rgba(255,255,255,0.08)]">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                            <div className="relative group">
+                                <div
+                                    onClick={triggerFileInput}
+                                    className="w-24 h-24 rounded-full bg-[#14161E] border-2 border-[#C8A55E]/40 text-[#C8A55E] flex items-center justify-center text-3xl font-bold font-outfit overflow-hidden cursor-pointer shadow-lg shadow-[#C8A55E]/10 group-hover:border-[#C8A55E] transition-all"
+                                >
+                                    {avatarPreview || profile.avatar ? (
+                                        <img
+                                            src={avatarPreview || profile.avatar}
+                                            alt={profile.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        profile.name ? profile.name.charAt(0).toUpperCase() : "U"
+                                    )}
 
-                    {/* Avatar & Basic Info */}
-                    <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-[rgba(255,255,255,0.08)]">
-                        <div className="relative group">
-                            <div
-                                onClick={triggerFileInput}
-                                className="w-24 h-24 rounded-full bg-[#14161E] border-2 border-[#C8A55E]/40 text-[#C8A55E] flex items-center justify-center text-3xl font-bold font-outfit overflow-hidden cursor-pointer shadow-lg shadow-[#C8A55E]/10 group-hover:border-[#C8A55E] transition-all"
-                            >
-                                {avatarPreview || profile.avatar ? (
-                                    <img
-                                        src={avatarPreview || profile.avatar}
-                                        alt={profile.name}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    profile.name ? profile.name.charAt(0).toUpperCase() : "U"
-                                )}
-
-                                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-                                    <span>📷</span>
-                                    <span className="font-semibold">Change</span>
+                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                                        <span>📷</span>
+                                        <span className="font-semibold">Change</span>
+                                    </div>
                                 </div>
+
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleImageChange}
+                                    accept="image/*"
+                                    className="hidden"
+                                />
                             </div>
 
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleImageChange}
-                                accept="image/*"
-                                className="hidden"
-                            />
+                            <div className="text-center sm:text-left space-y-1">
+                                <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap">
+                                    <h2 className="text-xl font-bold text-white font-outfit">
+                                        {profile.name || "User Name"}
+                                    </h2>
+                                    <span className="text-[10px] font-semibold bg-[#C8A55E]/10 text-[#C8A55E] border border-[#C8A55E]/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                        {profile.role}
+                                    </span>
+                                </div>
+
+                                <p className="text-xs text-[#9CA0AE]">{profile.email}</p>
+
+                                <button
+                                    type="button"
+                                    onClick={triggerFileInput}
+                                    className="text-xs text-[#C8A55E] hover:underline font-medium inline-block pt-1 cursor-pointer"
+                                >
+                                    Upload new picture
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="text-center sm:text-left space-y-1">
-                            <div className="flex items-center justify-center sm:justify-start gap-2.5">
-                                <h2 className="text-xl font-bold text-white font-outfit">
-                                    {profile.name || "User Name"}
-                                </h2>
-                                <span className="text-[10px] font-semibold bg-[#C8A55E]/10 text-[#C8A55E] border border-[#C8A55E]/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                                    {profile.role}
-                                </span>
-                            </div>
-
-                            <p className="text-xs text-[#9CA0AE]">{profile.email}</p>
-
+                        {/* Top Right Edit Button Toggle (Technician Profile Style) */}
+                        {!isEditing && (
                             <button
                                 type="button"
-                                onClick={triggerFileInput}
-                                className="text-xs text-[#C8A55E] hover:underline font-medium inline-block pt-1"
+                                onClick={handleEditToggle}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-[#171922] hover:bg-[#202330] border border-white/10 text-white transition-all cursor-pointer"
                             >
-                                Upload new picture
+                                <Edit2 className="w-3.5 h-3.5 text-[#C8A55E]" /> Edit
                             </button>
-                        </div>
+                        )}
                     </div>
 
                     {/* Profile Fields Form */}
                     <form onSubmit={handleSave} className="space-y-6">
-
                         <div>
                             <h3 className="text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-4">
                                 Personal Details
@@ -372,11 +421,10 @@ export default function CustomerProfilePage() {
                                     </label>
                                     <input
                                         type="text"
+                                        name="name"
                                         disabled={!isEditing}
-                                        value={profile.name}
-                                        onChange={(e) =>
-                                            setProfile({ ...profile, name: e.target.value })
-                                        }
+                                        value={isEditing ? formData.name : profile.name}
+                                        onChange={handleInputChange}
                                         className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C8A55E] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                                     />
                                 </div>
@@ -387,11 +435,10 @@ export default function CustomerProfilePage() {
                                     </label>
                                     <input
                                         type="text"
+                                        name="phone"
                                         disabled={!isEditing}
-                                        value={profile.phone}
-                                        onChange={(e) =>
-                                            setProfile({ ...profile, phone: e.target.value })
-                                        }
+                                        value={isEditing ? formData.phone : profile.phone}
+                                        onChange={handleInputChange}
                                         className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C8A55E] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                                     />
                                 </div>
@@ -407,6 +454,7 @@ export default function CustomerProfilePage() {
                                         className="w-full bg-[#14161E]/50 border border-[rgba(255,255,255,0.06)] rounded-xl px-4 py-2.5 text-sm text-[#9CA0AE] cursor-not-allowed capitalize"
                                     />
                                 </div>
+
                                 <div>
                                     <label className="block text-xs text-[#9CA0AE] mb-1.5 font-medium">
                                         Account Role
@@ -446,11 +494,10 @@ export default function CustomerProfilePage() {
                                     </label>
                                     <input
                                         type="text"
+                                        name="street"
                                         disabled={!isEditing}
-                                        value={profile.street}
-                                        onChange={(e) =>
-                                            setProfile({ ...profile, street: e.target.value })
-                                        }
+                                        value={isEditing ? formData.street : profile.street}
+                                        onChange={handleInputChange}
                                         className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C8A55E] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                                     />
                                 </div>
@@ -462,11 +509,10 @@ export default function CustomerProfilePage() {
                                         </label>
                                         <input
                                             type="text"
+                                            name="city"
                                             disabled={!isEditing}
-                                            value={profile.city}
-                                            onChange={(e) =>
-                                                setProfile({ ...profile, city: e.target.value })
-                                            }
+                                            value={isEditing ? formData.city : profile.city}
+                                            onChange={handleInputChange}
                                             className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C8A55E] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                                         />
                                     </div>
@@ -477,11 +523,10 @@ export default function CustomerProfilePage() {
                                         </label>
                                         <input
                                             type="text"
+                                            name="postalCode"
                                             disabled={!isEditing}
-                                            value={profile.postalCode}
-                                            onChange={(e) =>
-                                                setProfile({ ...profile, postalCode: e.target.value })
-                                            }
+                                            value={isEditing ? formData.postalCode : profile.postalCode}
+                                            onChange={handleInputChange}
                                             className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C8A55E] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                                         />
                                     </div>
@@ -489,35 +534,32 @@ export default function CustomerProfilePage() {
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-[rgba(255,255,255,0.08)] flex items-center justify-end gap-3">
-                            {!isEditing ? (
+                        {/* Bottom Actions (Shown only during Edit Mode) */}
+                        {isEditing && (
+                            <div className="pt-6 border-t border-[rgba(255,255,255,0.08)] flex items-center justify-end gap-3">
                                 <button
                                     type="button"
-                                    onClick={() => setIsEditing(true)}
-                                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] text-[#08090D] font-semibold text-xs hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all"
+                                    onClick={handleEditToggle}
+                                    className="px-5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.1)] text-xs font-semibold text-[#9CA0AE] hover:text-white transition-colors cursor-pointer"
                                 >
-                                    Edit Profile
+                                    Cancel
                                 </button>
-                            ) : (
-                                <>
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsEditing(false)}
-                                        className="px-5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.1)] text-xs font-semibold text-[#9CA0AE] hover:text-white transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] text-[#08090D] font-semibold text-xs hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all"
-                                    >
-                                        Save Changes
-                                    </button>
-                                </>
-                            )}
-                        </div>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] text-[#08090D] font-semibold text-xs hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...
+                                        </>
+                                    ) : (
+                                        "Save Changes"
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </form>
-
                 </div>
             </div>
         </div>
