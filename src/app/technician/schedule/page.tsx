@@ -13,27 +13,15 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { sortTechnicianJobs, type TechnicianJob } from "@/lib/technicianJobs";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
-
-interface ScheduleItem {
-  booking_id: string;
-  customer_name: string;
-  phone: string;
-  service_category: string;
-  problem_description: string;
-  address: string;
-  preferred_date: string;
-  preferred_time: string;
-  booking_type: string;
-  status: string;
-}
 
 export default function TechnicianSchedulePage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [jobs, setJobs] = useState<ScheduleItem[]>([]);
+  const [jobs, setJobs] = useState<TechnicianJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,11 +97,9 @@ export default function TechnicianSchedulePage() {
 
   const selectedDateKey = selectedDate.toISOString().split("T")[0];
 
-  const selectedDateSchedule = useMemo(() => {
-    return jobs
-      .filter((item) => item.preferred_date === selectedDateKey)
-      .sort((left, right) => left.preferred_time.localeCompare(right.preferred_time));
-  }, [jobs, selectedDateKey]);
+  const selectedDateSchedule = sortTechnicianJobs(jobs).filter(
+    (item) => item.preferred_date === selectedDateKey
+  );
 
   const completedJobs = useMemo(() => {
     return jobs
