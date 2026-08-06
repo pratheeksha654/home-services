@@ -97,7 +97,11 @@ function ApplicationsContent() {
     setActioningId(id);
     try {
       const token = getToken();
+
+      
       const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+      console.log("Token:", token);
+console.log("URL:", `${API_URL}/coordinator/applications/${id}/${action}`);
       const response = await fetch(`${API_URL}/coordinator/applications/${id}/${action}`, {
         method: "PATCH",
         headers: {
