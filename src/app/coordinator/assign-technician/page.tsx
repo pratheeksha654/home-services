@@ -49,7 +49,6 @@ interface Technician {
 }
 
 export default function CoordinatorAssignTechnicianPage() {
-  
   return (
     <AuthGuard>
       <AssignTechnicianContent />
@@ -58,37 +57,69 @@ export default function CoordinatorAssignTechnicianPage() {
 }
 
 function AssignTechnicianContent() {
+  const isMatchingTechnician = (
+    technicianSkill: string,
+    serviceCategory: string,
+  ) => {
+    if (!technicianSkill || !serviceCategory) return false;
+    const skill = technicianSkill.toLowerCase();
+    const category = serviceCategory.toLowerCase();
 
-const isMatchingTechnician = (
-  technicianSkill: string,
-  serviceCategory: string
-) => {
-  if (!technicianSkill || !serviceCategory) return false;
-  const skill = technicianSkill.toLowerCase();
-  const category = serviceCategory.toLowerCase();
+    if (category.includes("paint") && skill.includes("paint")) return true;
+    if (category.includes("carpent") && skill.includes("carpent")) return true;
+    if (
+      (category.includes("clean") || category.includes("housekeeping")) &&
+      (skill.includes("clean") ||
+        skill.includes("housekeeping") ||
+        skill.includes("maid"))
+    )
+      return true;
+    if (category.includes("plumb") && skill.includes("plumb")) return true;
+    if (
+      (category.includes("electric") || category.includes("wiring")) &&
+      (skill.includes("electric") || skill.includes("wiring"))
+    )
+      return true;
+    if (
+      (category.includes("ac") ||
+        category.includes("cool") ||
+        category.includes("air")) &&
+      (skill.includes("ac") ||
+        skill.includes("cool") ||
+        skill.includes("air") ||
+        skill.includes("hvac"))
+    )
+      return true;
+    if (
+      (category.includes("appliance") ||
+        category.includes("fridge") ||
+        category.includes("washing") ||
+        category.includes("repair")) &&
+      (skill.includes("appliance") ||
+        skill.includes("fridge") ||
+        skill.includes("washing") ||
+        skill.includes("repair"))
+    )
+      return true;
+    if (category.includes("pest") && skill.includes("pest")) return true;
 
-  if (category.includes("paint") && skill.includes("paint")) return true;
-  if (category.includes("carpent") && skill.includes("carpent")) return true;
-  if ((category.includes("clean") || category.includes("housekeeping")) && (skill.includes("clean") || skill.includes("housekeeping") || skill.includes("maid"))) return true;
-  if (category.includes("plumb") && skill.includes("plumb")) return true;
-  if ((category.includes("electric") || category.includes("wiring")) && (skill.includes("electric") || skill.includes("wiring"))) return true;
-  if ((category.includes("ac") || category.includes("cool") || category.includes("air")) && (skill.includes("ac") || skill.includes("cool") || skill.includes("air") || skill.includes("hvac"))) return true;
-  if ((category.includes("appliance") || category.includes("fridge") || category.includes("washing") || category.includes("repair")) && (skill.includes("appliance") || skill.includes("fridge") || skill.includes("washing") || skill.includes("repair"))) return true;
-  if (category.includes("pest") && skill.includes("pest")) return true;
-
-  return skill.includes(category) || category.includes(skill);
-};
-
+    return skill.includes(category) || category.includes(skill);
+  };
 
   const [pendingBookings, setPendingBookings] = useState<Booking[]>([]);
-  const [availableTechnicians, setAvailableTechnicians] = useState<Technician[]>([]);
+  const [availableTechnicians, setAvailableTechnicians] = useState<
+    Technician[]
+  >([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [assignError, setAssignError] = useState("");
 
   // Assignment Modal / Selection state
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [selectedTechnicianId, setSelectedTechnicianId] = useState<string | null>(null);
+  const [selectedTechnicianId, setSelectedTechnicianId] = useState<
+    string | null
+  >(null);
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
 
   // States for fetching technicians dynamically matching the category of the selected booking
@@ -108,10 +139,16 @@ const isMatchingTechnician = (
       setIsFallbackList(false);
       try {
         const category = selectedBooking.service_category;
-        const res = await fetch(`${backendUrl}/technicians?approval_status=Approved&availability=Available&skills=${encodeURIComponent(category)}`);
+        const res = await fetch(
+          `${backendUrl}/technicians/available-for-booking?date=${selectedBooking.preferred_date}&time=${selectedBooking.preferred_time}`,
+        );
         const data = await parseJsonResponse(res);
 
-        if (res.ok && data?.data?.technicians && data.data.technicians.length > 0) {
+        if (
+          res.ok &&
+          data?.data?.technicians &&
+          data.data.technicians.length > 0
+        ) {
           const uniqueTechsMap = new Map();
           data.data.technicians.forEach((t: Technician) => {
             if (t.technician_id) {
@@ -121,7 +158,9 @@ const isMatchingTechnician = (
           setModalTechnicians(Array.from(uniqueTechsMap.values()));
         } else {
           setIsFallbackList(true);
-          const allRes = await fetch(`${backendUrl}/technicians?approval_status=Approved&availability=Available`);
+          const allRes = await fetch(
+            `${backendUrl}/technicians?approval_status=Approved&availability=Available`,
+          );
           const allData = await parseJsonResponse(allRes);
           if (allRes.ok && allData?.data?.technicians) {
             const uniqueTechsMap = new Map();
@@ -146,7 +185,8 @@ const isMatchingTechnician = (
     fetchModalTechs();
   }, [selectedBooking]);
 
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+  const backendUrl =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
   const parseJsonResponse = async (response: Response) => {
     const text = await response.text();
@@ -158,7 +198,9 @@ const isMatchingTechnician = (
     try {
       return JSON.parse(text);
     } catch {
-      throw new Error(`The server returned an unexpected response for ${response.url}.`);
+      throw new Error(
+        `The server returned an unexpected response for ${response.url}.`,
+      );
     }
   };
 
@@ -168,7 +210,9 @@ const isMatchingTechnician = (
     setError(null);
     try {
       // 1. Fetch pending normal bookings
-      const bookingsRes = await fetch(`${backendUrl}/coordinator/pending-requests`);
+      const bookingsRes = await fetch(
+        `${backendUrl}/coordinator/pending-requests`,
+      );
       const bookingsData = await parseJsonResponse(bookingsRes);
 
       if (bookingsRes.ok && bookingsData?.data?.requests) {
@@ -178,7 +222,9 @@ const isMatchingTechnician = (
       }
 
       // 2. Fetch approved and available technicians
-      const techsRes = await fetch(`${backendUrl}/technicians?approval_status=Approved&availability=Available`);
+      const techsRes = await fetch(
+        `${backendUrl}/technicians?approval_status=Approved&availability=Available`,
+      );
       const techsData = await parseJsonResponse(techsRes);
 
       if (techsRes.ok && techsData?.data?.technicians) {
@@ -194,7 +240,10 @@ const isMatchingTechnician = (
       }
     } catch (err: any) {
       console.error("Error fetching data:", err);
-      setError(err.message || "Failed to fetch pending bookings or available technicians. Please check your backend connection.");
+      setError(
+        err.message ||
+          "Failed to fetch pending bookings or available technicians. Please check your backend connection.",
+      );
     } finally {
       setLoading(false);
     }
@@ -223,22 +272,42 @@ const isMatchingTechnician = (
         }),
       });
 
-      const data = await parseJsonResponse(response);
+      const data = await response.json();
+if (!response.ok) {
+  setAssignError(
+    `
 
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to assign technician.");
-      }
+${
+  modalTechnicians.find(
+    (t) => t.technician_id === selectedTechnicianId
+  )?.name || "This technician"
+} is already assigned to another customer on
+${selectedBooking?.preferred_date} during
+${selectedBooking?.preferred_time}.
+
+Please choose another technician.`
+  );
+  return;
+}
 
       // Success: Remove assigned booking from pending list
-      setPendingBookings((prev) => prev.filter((b) => b.booking_id !== selectedBooking.booking_id));
-      
-      // Update local technician availability list
-      setAvailableTechnicians((prev) => prev.filter((t) => t.technician_id !== selectedTechnicianId));
-
-      const assignedTech = availableTechnicians.find((t) => t.technician_id === selectedTechnicianId);
-      setSuccessMessage(
-        `Successfully assigned technician "${assignedTech?.name || selectedTechnicianId}" to Booking #${selectedBooking.booking_id.slice(0, 8)}!`
+      setPendingBookings((prev) =>
+        prev.filter((b) => b.booking_id !== selectedBooking.booking_id),
       );
+
+      // Update local technician availability list
+      setAvailableTechnicians((prev) =>
+        prev.filter((t) => t.technician_id !== selectedTechnicianId),
+      );
+
+      const assignedTech = availableTechnicians.find(
+        (t) => t.technician_id === selectedTechnicianId,
+      );
+      setSuccessMessage(
+        `Successfully assigned technician "${assignedTech?.name || selectedTechnicianId}" to Booking #${selectedBooking.booking_id.slice(0, 8)}!`,
+      );
+
+      setAssignError("");
 
       // Close modal
       setSelectedBooking(null);
@@ -271,7 +340,8 @@ const isMatchingTechnician = (
               Assign Technician to Pending Bookings
             </h1>
             <p className="text-sm text-[#9CA0AE] mt-1">
-              Manage normal service requests, view available technicians, and dispatch jobs.
+              Manage normal service requests, view available technicians, and
+              dispatch jobs.
             </p>
           </div>
 
@@ -280,7 +350,9 @@ const isMatchingTechnician = (
             disabled={loading}
             className="self-start md:self-auto flex items-center gap-2 px-4 py-2 rounded-xl bg-[#14161E] border border-[rgba(255,255,255,0.1)] text-xs font-semibold text-white hover:border-[#C8A55E]/50 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[#C8A55E]" : ""}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[#C8A55E]" : ""}`}
+            />
             <span>Refresh Pending List</span>
           </button>
         </div>
@@ -292,7 +364,10 @@ const isMatchingTechnician = (
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
               <span>{error}</span>
             </div>
-            <button onClick={() => setError(null)} className="text-rose-400 hover:text-white">
+            <button
+              onClick={() => setError(null)}
+              className="text-rose-400 hover:text-white"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -304,7 +379,10 @@ const isMatchingTechnician = (
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>{successMessage}</span>
             </div>
-            <button onClick={() => setSuccessMessage(null)} className="text-emerald-400 hover:text-white">
+            <button
+              onClick={() => setSuccessMessage(null)}
+              className="text-emerald-400 hover:text-white"
+            >
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -314,7 +392,9 @@ const isMatchingTechnician = (
         {loading ? (
           <div className="py-20 text-center">
             <div className="w-12 h-12 border-2 border-[#C8A55E] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-sm text-[#9CA0AE]">Fetching pending normal bookings and technicians...</p>
+            <p className="text-sm text-[#9CA0AE]">
+              Fetching pending normal bookings and technicians...
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -332,9 +412,12 @@ const isMatchingTechnician = (
               {pendingBookings.length === 0 ? (
                 <div className="bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-2xl p-12 text-center">
                   <CheckCircle2 className="w-12 h-12 text-emerald-400/50 mx-auto mb-3" />
-                  <h3 className="text-base font-semibold text-white">No Pending Bookings</h3>
+                  <h3 className="text-base font-semibold text-white">
+                    No Pending Bookings
+                  </h3>
                   <p className="text-xs text-[#9CA0AE] mt-1">
-                    All normal service requests have been assigned to technicians.
+                    All normal service requests have been assigned to
+                    technicians.
                   </p>
                 </div>
               ) : (
@@ -389,7 +472,9 @@ const isMatchingTechnician = (
                         </span>
                         <div className="flex items-center gap-1.5 text-white font-medium">
                           <Calendar className="w-3.5 h-3.5 text-[#C8A55E]" />
-                          <span>{booking.preferred_date} • {booking.preferred_time}</span>
+                          <span>
+                            {booking.preferred_date} • {booking.preferred_time}
+                          </span>
                         </div>
                       </div>
 
@@ -404,7 +489,9 @@ const isMatchingTechnician = (
                           </div>
                           <div className="flex items-center gap-1.5">
                             <Mail className="w-3.5 h-3.5 text-[#9CA0AE]" />
-                            <span className="truncate max-w-[200px]">{booking.email}</span>
+                            <span className="truncate max-w-[200px]">
+                              {booking.email}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -415,7 +502,9 @@ const isMatchingTechnician = (
                         </span>
                         <div className="flex items-start gap-1.5 text-white font-medium">
                           <MapPin className="w-3.5 h-3.5 text-[#C8A55E] shrink-0 mt-0.5" />
-                          <span className="line-clamp-2">{booking.address}</span>
+                          <span className="line-clamp-2">
+                            {booking.address}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -446,7 +535,8 @@ const isMatchingTechnician = (
 
               {availableTechnicians.length === 0 ? (
                 <div className="bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 text-center text-xs text-[#9CA0AE]">
-                  No technicians are currently marked as "Available" and "Approved".
+                  No technicians are currently marked as "Available" and
+                  "Approved".
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
@@ -455,19 +545,22 @@ const isMatchingTechnician = (
                       key={tech.technician_id}
                       className="bg-[#10121A] border border-[rgba(255,255,255,0.06)] rounded-xl p-4 flex items-start gap-3"
                     >
-                      
                       <div className="flex-1">
                         <div className="flex items-center justify-between gap-1">
-                          <h4 className="text-xs font-bold text-white truncate">{tech.name}</h4>
-                          <div className="flex items-center gap-1 text-[11px] text-[#C8A55E]">
-                           
-                          </div>
+                          <h4 className="text-xs font-bold text-white truncate">
+                            {tech.name}
+                          </h4>
+                          <div className="flex items-center gap-1 text-[11px] text-[#C8A55E]"></div>
                         </div>
-                        <p className="text-[11px] text-[#9CA0AE] truncate">{tech.skills}</p>
+                        <p className="text-[11px] text-[#9CA0AE] truncate">
+                          {tech.skills}
+                        </p>
                         <div className="flex items-center gap-2 mt-1.5 text-[10px] text-[#5C6070]">
                           <span>{tech.experience} yrs exp</span>
                           <span>•</span>
-                          <span className="text-emerald-400 font-semibold">{tech.availability}</span>
+                          <span className="text-emerald-400 font-semibold">
+                            {tech.availability}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -497,12 +590,36 @@ const isMatchingTechnician = (
                   Assign Technician for {selectedBooking.customer_name}
                 </h3>
                 <p className="text-xs text-[#9CA0AE] mt-1">
-                  Category: <strong className="text-white">{selectedBooking.service_category}</strong> • Preferred Time:{" "}
-                  <strong className="text-[#C8A55E]">{selectedBooking.preferred_date} ({selectedBooking.preferred_time})</strong>
+                  Category:{" "}
+                  <strong className="text-white">
+                    {selectedBooking.service_category}
+                  </strong>{" "}
+                  • Preferred Time:{" "}
+                  <strong className="text-[#C8A55E]">
+                    {selectedBooking.preferred_date} (
+                    {selectedBooking.preferred_time})
+                  </strong>
                 </p>
               </div>
 
               <div className="space-y-3 mb-6">
+                {assignError && (
+  <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
+    <div className="flex items-start gap-3">
+      
+
+      <div>
+        <h3 className="text-red-400 font-bold text-sm">
+          Technician Not Available
+        </h3>
+
+        <p className="mt-2 text-sm text-red-200 whitespace-pre-line">
+          {assignError}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
                 <label className="block text-xs font-semibold uppercase text-[#9CA0AE]">
                   Select Available & Approved Technician
                 </label>
@@ -514,22 +631,28 @@ const isMatchingTechnician = (
                   </div>
                 ) : modalTechnicians.length === 0 ? (
                   <p className="text-xs text-rose-400 p-3 bg-rose-500/10 rounded-xl border border-rose-500/20">
-                    No approved technicians are available right now. Please try again later or approve applications.
+                    No approved technicians are available right now. Please try
+                    again later or approve applications.
                   </p>
                 ) : (
                   <div className="space-y-3">
                     {isFallbackList && (
                       <p className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl">
-                        ⚠️ No exact skill match for "{selectedBooking.service_category}". Showing all available technicians:
+                        ⚠️ No exact skill match for "
+                        {selectedBooking.service_category}". Showing all
+                        available technicians:
                       </p>
                     )}
                     <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                       {(modalTechnicians || []).map((tech) => {
-                        const isSelected = selectedTechnicianId === tech.technician_id;
+                        const isSelected =
+                          selectedTechnicianId === tech.technician_id;
                         return (
                           <div
                             key={tech.technician_id}
-                            onClick={() => setSelectedTechnicianId(tech.technician_id)}
+                            onClick={() =>
+                              setSelectedTechnicianId(tech.technician_id)
+                            }
                             className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
                               isSelected
                                 ? "bg-[#C8A55E]/15 border-[#C8A55E] shadow-md shadow-[#C8A55E]/10"
@@ -538,8 +661,12 @@ const isMatchingTechnician = (
                           >
                             <div className="flex items-center gap-3">
                               <div>
-                                <h4 className="text-xs font-bold text-white">{tech.name}</h4>
-                                <p className="text-[11px] text-[#9CA0AE]">{tech.skills}</p>
+                                <h4 className="text-xs font-bold text-white">
+                                  {tech.name}
+                                </h4>
+                                <p className="text-[11px] text-[#9CA0AE]">
+                                  {tech.skills}
+                                </p>
                               </div>
                             </div>
 
@@ -549,7 +676,9 @@ const isMatchingTechnician = (
                               </span>
                               <div
                                 className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs ${
-                                  isSelected ? "bg-[#C8A55E] text-[#08090D] border-[#C8A55E]" : "border-[rgba(255,255,255,0.2)]"
+                                  isSelected
+                                    ? "bg-[#C8A55E] text-[#08090D] border-[#C8A55E]"
+                                    : "border-[rgba(255,255,255,0.2)]"
                                 }`}
                               >
                                 {isSelected && "✓"}
