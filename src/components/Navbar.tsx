@@ -11,6 +11,24 @@ import { ProfileDropdown } from "./navbar/ProfileDropdown";
 import { MobileMenu } from "./navbar/MobileMenu";
 import { getNavLinksForRole, isNavItemActive } from "@/lib/navConfig";
 
+function getProfileRoute(role?: string | null): string {
+  const normalizedRole = role ? role.toUpperCase().trim() : "CUSTOMER";
+
+  switch (normalizedRole) {
+    case "ADMIN":
+      return "/admin/profile";
+    case "TECHNICIAN":
+    case "TECHNICIAN_PENDING":
+      return "/technician/profile";
+    case "COORDINATOR":
+      return "/coordinator/profile";
+    case "CUSTOMER":
+      return "/customer/profile";
+    default:
+      return "/profile";
+  }
+}
+
 function getNotificationRoute(role?: string | null): string {
   const normalizedRole = role ? role.toUpperCase().trim() : "CUSTOMER";
 
@@ -80,25 +98,24 @@ export default function Navbar() {
   const isLoggedIn = Boolean(user);
   const role = user?.role ? user.role.toUpperCase().trim() : null;
   const notificationPath = getNotificationRoute(role);
-
+  const profilePath = getProfileRoute(role);
   const initials = user?.name
     ? user.name
-        .split(" ")
-        .slice(0, 2)
-        .map((w: string) => w[0])
-        .join("")
-        .toUpperCase()
+      .split(" ")
+      .slice(0, 2)
+      .map((w: string) => w[0])
+      .join("")
+      .toUpperCase()
     : user?.email?.charAt(0).toUpperCase() || "U";
 
   const navItems = getNavLinksForRole(isLoggedIn ? role : null);
 
   return (
     <nav
-      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-        scrolled
-          ? "bg-[#0A0B10]/40 border-b border-[rgba(255,255,255,0.06)] backdrop-blur-md shadow-lg shadow-black/20"
-          : "bg-transparent border-b border-transparent"
-      } px-4 sm:px-8 py-3.5`}
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled
+        ? "bg-[#0A0B10]/40 border-b border-[rgba(255,255,255,0.06)] backdrop-blur-md shadow-lg shadow-black/20"
+        : "bg-transparent border-b border-transparent"
+        } px-4 sm:px-8 py-3.5`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between relative">
         {/* Brand Logo */}

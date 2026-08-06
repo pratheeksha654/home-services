@@ -14,6 +14,23 @@ interface ProfileDropdownProps {
     logout: () => void;
 }
 
+function getProfileRoute(role?: string | null): string {
+    const normalizedRole = role ? role.toUpperCase().trim() : "CUSTOMER";
+
+    switch (normalizedRole) {
+        case "ADMIN":
+            return "/admin/profile";
+        case "TECHNICIAN":
+        case "TECHNICIAN_PENDING":
+            return "/technician/profile";
+        case "COORDINATOR":
+            return "/coordinator/profile";
+        case "CUSTOMER":
+        default:
+            return "/customer/profile";
+    }
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
     return (
         <div>
@@ -36,6 +53,8 @@ export function ProfileDropdown({
     setDropdownOpen,
     logout,
 }: ProfileDropdownProps) {
+    const profilePath = getProfileRoute(role);
+
     return (
         <div className="relative" ref={dropdownRef}>
             <button
@@ -112,7 +131,7 @@ export function ProfileDropdown({
 
                     <div className="p-3 space-y-1.5">
                         <Link
-                            href="/profile"
+                            href={profilePath}
                             onClick={() => setDropdownOpen(false)}
                             className="relative group overflow-hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold font-inter text-[#08090D] bg-gradient-to-r from-[#C8A55E] via-[#E4D5A8] to-[#C8A55E] rounded-xl hover:shadow-lg hover:shadow-[#C8A55E]/20 transition-all duration-200 active:scale-[0.98]"
                         >
