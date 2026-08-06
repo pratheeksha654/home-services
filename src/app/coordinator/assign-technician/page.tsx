@@ -112,8 +112,9 @@ function AssignTechnicianContent() {
   >([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [assignError, setAssignError] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+ 
 
   // Assignment Modal / Selection state
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -272,8 +273,10 @@ function AssignTechnicianContent() {
         }),
       });
 
-      const data = await response.json();
-if (!response.ok) {
+    
+      const data = await parseJsonResponse(response);
+   
+      if (!response.ok) {
   setAssignError(
     `
 
@@ -287,6 +290,8 @@ ${selectedBooking?.preferred_time}.
 
 Please choose another technician.`
   );
+
+
   return;
 }
 
@@ -445,6 +450,7 @@ Please choose another technician.`
 
                       <button
                         onClick={() => {
+                          setAssignError("");
                           setSelectedBooking(booking);
                           setSelectedTechnicianId(null);
                         }}
@@ -603,26 +609,22 @@ Please choose another technician.`
               </div>
 
               <div className="space-y-3 mb-6">
-                {assignError && (
-  <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-    <div className="flex items-start gap-3">
-      
-
-      <div>
-        <h3 className="text-red-400 font-bold text-sm">
-          Technician Not Available
-        </h3>
-
-        <p className="mt-2 text-sm text-red-200 whitespace-pre-line">
-          {assignError}
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+               
                 <label className="block text-xs font-semibold uppercase text-[#9CA0AE]">
                   Select Available & Approved Technician
                 </label>
+
+                {assignError && (
+  <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+    <h3 className="text-red-400 font-bold">
+      ❌ Technician Not Available
+    </h3>
+
+    <p className="mt-2 whitespace-pre-line text-red-200">
+      {assignError}
+    </p>
+  </div>
+)}
 
                 {loadingModalTechs ? (
                   <div className="flex items-center justify-center py-8 gap-2 text-xs text-[#C8A55E]">
