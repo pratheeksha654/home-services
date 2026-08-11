@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -30,7 +30,7 @@ export default function AuthGuard({ children, guestOnly = false }: AuthGuardProp
       if (!user.onboardingCompleted && !isSpecialRole) {
         router.replace("/onboarding/details");
       } else {
-        router.replace(user.role ? (user.role === "COORDINATOR" || user.role === "ADMIN" ? "/coordinator/dashboard" : "/dashboard") : "/dashboard");
+        router.replace(getRoleBasedRoute(user.role));
       }
     } else if (!guestOnly && !user) {
       // Unauthenticated user on a protected page → go to login
