@@ -9,7 +9,6 @@ export const ROLE_NAV_LINKS: Record<string, NavItem[]> = {
         { href: "/admin/dashboard", label: "Dashboard" },
         { href: "/admin/users", label: "Manage Users" },
         { href: "/admin/coordinators", label: "Coordinators" },
-        { href: "/admin/settings", label: "Settings" },
     ],
     COORDINATOR: [
         { href: "/coordinator/dashboard", label: "Home" },

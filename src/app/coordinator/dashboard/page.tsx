@@ -12,12 +12,12 @@ export default function DashboardPage() {
       <QuickActions />
 
       <SummaryCards />
-        <TechnicianOverview />
-        <Footer/>
+      <TechnicianOverview />
+      <Footer />
 
-   
 
-      
+
+
 
     </main>
   );
