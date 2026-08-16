@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
+import { Phone } from "lucide-react";
 
 import { NavLink } from "./navbar/NavLink";
 import { ProfileDropdown } from "./navbar/ProfileDropdown";
@@ -96,7 +97,21 @@ export default function Navbar() {
   if (shouldHideNavbar) return null;
 
   const isLoggedIn = Boolean(user);
-  const role = user?.role ? user.role.toUpperCase().trim() : null;
+  
+  // Determine effective role reactively from user or current URL path fallback
+  let role = user?.role ? user.role.toUpperCase().trim() : null;
+  if (!role) {
+    if (pathname.startsWith("/admin")) {
+      role = "ADMIN";
+    } else if (pathname.startsWith("/coordinator")) {
+      role = "COORDINATOR";
+    } else if (pathname.startsWith("/technician")) {
+      role = "TECHNICIAN";
+    } else if (pathname.startsWith("/customer")) {
+      role = "CUSTOMER";
+    }
+  }
+
   const notificationPath = getNotificationRoute(role);
   const profilePath = getProfileRoute(role);
   const initials = user?.name
@@ -108,7 +123,7 @@ export default function Navbar() {
       .toUpperCase()
     : user?.email?.charAt(0).toUpperCase() || "U";
 
-  const navItems = getNavLinksForRole(isLoggedIn ? role : null);
+  const navItems = getNavLinksForRole(role);
 
   return (
     <nav
@@ -147,6 +162,18 @@ export default function Navbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+          {/* Senior Support Call Button */}
+          {isLoggedIn && role === "CUSTOMER" && Number(user?.age) >= 60 && (
+            <a
+              href="tel:+18005550199"
+              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 hover:text-emerald-300 text-xs font-semibold font-inter transition-all duration-200"
+              title="Call Senior Support"
+            >
+              <Phone className="w-4 h-4" />
+              <span>Senior Support</span>
+            </a>
+          )}
+
           <MobileMenu
             isLoggedIn={isLoggedIn}
             user={user}

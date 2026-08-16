@@ -25,24 +25,46 @@ export default function AuthGuard({ children, guestOnly = false }: AuthGuardProp
     if (isLoading) return;
 
     if (guestOnly && user) {
-      // Authenticated user on a guest-only page → go to dashboard or onboarding
-      const isSpecialRole = user.role === "COORDINATOR" || user.role === "ADMIN";
-      if (!user.onboardingCompleted && !isSpecialRole) {
-        router.replace("/onboarding/details");
-      } else {
-        router.replace(getRoleBasedRoute(user.role));
-      }
-    } else if (!guestOnly && !user) {
-      // Unauthenticated user on a protected page → go to login
-      router.replace("/login");
-    } else if (!guestOnly && user) {
-      // Authenticated user — enforce onboarding funnel
-      const isOnboardingPage = ONBOARDING_ROUTES.some((r) => pathname === r || pathname.startsWith(r));
-      const isSpecialRole = user.role === "COORDINATOR" || user.role === "ADMIN";
+      // Authenticated user on a guest-only page (like /login)
+      const targetRoute = getRoleBasedRoute(user.role, user.onboardingCompleted);
+      router.replace(targetRoute);
+      return;
+    }
 
-      if (!user.onboardingCompleted && !isOnboardingPage && !isSpecialRole) {
-        // Not yet onboarded and not already on an onboarding page → redirect
-        router.replace("/onboarding/details");
+    if (!guestOnly && !user) {
+      // Unauthenticated user on a protected page → redirect to /login
+      router.replace("/login");
+      return;
+    }
+
+    if (!guestOnly && user) {
+      const roleUpper = user.role?.toUpperCase().trim();
+      const isAdmin = roleUpper === "ADMIN" || roleUpper === "SUPER_ADMIN";
+      const isCoordinator = roleUpper === "COORDINATOR";
+
+      // If Admin or Coordinator is on a Customer route or Onboarding route, redirect them to their home dashboard
+      if (isAdmin && (pathname.startsWith("/customer") || pathname.startsWith("/onboarding"))) {
+        router.replace("/admin/dashboard");
+        return;
+      }
+      if (isCoordinator && (pathname.startsWith("/customer") || pathname.startsWith("/onboarding"))) {
+        router.replace("/coordinator/dashboard");
+        return;
+      }
+
+      const isTechnician = roleUpper?.startsWith("TECHNICIAN") || roleUpper === "REJECTED";
+      if (isTechnician && (pathname.startsWith("/customer") || pathname.startsWith("/onboarding"))) {
+        router.replace(getRoleBasedRoute(user.role, user.onboardingCompleted));
+        return;
+      }
+
+      // Customer onboarding funnel enforcement
+      if (roleUpper === "CUSTOMER" || !roleUpper) {
+        const isOnboardingPage = ONBOARDING_ROUTES.some((r) => pathname === r || pathname.startsWith(r));
+        if (user.onboardingCompleted === false && !isOnboardingPage) {
+          router.replace("/onboarding/details");
+          return;
+        }
       }
     }
   }, [user, isLoading, guestOnly, router, pathname]);
@@ -62,6 +84,22 @@ export default function AuthGuard({ children, guestOnly = false }: AuthGuardProp
   // Don't render children while redirecting
   if (guestOnly && user) return null;
   if (!guestOnly && !user) return null;
+
+  if (user) {
+    const roleUpper = user.role?.toUpperCase().trim();
+    const isAdmin = roleUpper === "ADMIN" || roleUpper === "SUPER_ADMIN";
+    const isCoordinator = roleUpper === "COORDINATOR";
+    const isTechnician = roleUpper?.startsWith("TECHNICIAN") || roleUpper === "REJECTED";
+    if (isAdmin && (pathname.startsWith("/customer") || pathname.startsWith("/onboarding"))) {
+      return null;
+    }
+    if (isCoordinator && (pathname.startsWith("/customer") || pathname.startsWith("/onboarding"))) {
+      return null;
+    }
+    if (isTechnician && (pathname.startsWith("/customer") || pathname.startsWith("/onboarding"))) {
+      return null;
+    }
+  }
 
   return <>{children}</>;
 }

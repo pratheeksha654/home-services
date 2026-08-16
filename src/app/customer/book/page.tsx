@@ -108,11 +108,9 @@ export default function BookingPage() {
     const [customTimeSlot, setCustomTimeSlot] = useState<string>("");
 
     // Address State
-    const [address, setAddress] = useState({
-        street: "",
-        city: "",
-        postalCode: "",
-    });
+    const [address, setAddress] = useState<string>("");
+    const [city, setCity] = useState<string>("");
+    const [pincode, setPincode] = useState<string>("");
 
     const [notes, setNotes] = useState<string>("");
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -130,11 +128,9 @@ export default function BookingPage() {
         setEmail(user.email || "");
         setPhone(user.phone || "");
 
-        setAddress({
-            street: user.street || "",
-            city: user.city || "",
-            postalCode: user.postalCode || "",
-        });
+        setAddress(user.street || "");
+        setCity(user.city || "");
+        setPincode(user.postalCode || "");
     }, [user]);
 
     const activeServiceObj = SERVICES.find((s) => s.id === selectedService);
@@ -182,7 +178,9 @@ export default function BookingPage() {
             setCustomerName("");
             setPhone("");
             setEmail("");
-            setAddress({ street: "", city: "", postalCode: "" });
+            setAddress("");
+            setCity("");
+            setPincode("");
         }
         setStep(1);
     };
@@ -237,8 +235,8 @@ export default function BookingPage() {
             window.scrollTo({ top: 0, behavior: "smooth" });
             return;
         }
-        if (!address.street.trim() || !address.city.trim() || !address.postalCode.trim()) {
-            setErrorMsg("Full Address (Street, City, Postal Code) is required.");
+        if (!address.trim() || !city.trim() || !pincode.trim()) {
+            setErrorMsg("Service Address, City, and Pincode are required.");
             window.scrollTo({ top: 0, behavior: "smooth" });
             return;
         }
@@ -246,7 +244,6 @@ export default function BookingPage() {
         setIsSubmitting(true);
 
         try {
-            const formattedAddress = `${address.street}, ${address.city}, ${address.postalCode}`;
             const serviceCategoryName = activeServiceObj ? activeServiceObj.name : selectedService;
 
             const payload = {
@@ -255,7 +252,9 @@ export default function BookingPage() {
                 email: email,
                 service_category: serviceCategoryName,
                 problem_description: issueDescription,
-                address: formattedAddress,
+                address: address,
+                city: city,
+                pincode: pincode,
                 preferred_date: bookingDate,
                 preferred_time: finalTimeSlot,
                 booking_type: "Normal",
@@ -563,7 +562,7 @@ export default function BookingPage() {
                                         </div>
                                     </div>
 
-                                    {/* Street Address */}
+                                    {/* Service Address */}
                                     <div>
                                         <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-1.5">
                                             Street Address <span className="text-[#C8A55E]">*</span>
@@ -571,14 +570,14 @@ export default function BookingPage() {
                                         <input
                                             type="text"
                                             required
-                                            placeholder="House No., Building / Street Name, Area"
-                                            value={address.street}
-                                            onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                                            placeholder="House No., Building, Street Name"
+                                            value={address}
+                                            onChange={(e) => setAddress(e.target.value)}
                                             className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
                                         />
                                     </div>
 
-                                    {/* City & Postal Code */}
+                                    {/* City & Pincode */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-1.5">
@@ -587,22 +586,22 @@ export default function BookingPage() {
                                             <input
                                                 type="text"
                                                 required
-                                                placeholder="e.g. Bangalore"
-                                                value={address.city}
-                                                onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                                                placeholder="City"
+                                                value={city}
+                                                onChange={(e) => setCity(e.target.value)}
                                                 className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-xs font-semibold uppercase tracking-wider text-[#9CA0AE] mb-1.5">
-                                                Postal Code <span className="text-[#C8A55E]">*</span>
+                                                Pincode / Postal Code <span className="text-[#C8A55E]">*</span>
                                             </label>
                                             <input
                                                 type="text"
                                                 required
-                                                placeholder="560001"
-                                                value={address.postalCode}
-                                                onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
+                                                placeholder="Pincode"
+                                                value={pincode}
+                                                onChange={(e) => setPincode(e.target.value)}
                                                 className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#C8A55E]"
                                             />
                                         </div>
@@ -727,9 +726,9 @@ export default function BookingPage() {
                                 <span className="text-[#5C6070] uppercase font-semibold block mb-1">
                                     Address
                                 </span>
-                                {address.street ? (
+                                {address || city || pincode ? (
                                     <p className="text-white font-medium truncate">
-                                        {address.street}, {address.city} {address.postalCode}
+                                        {[address, city, pincode].filter(Boolean).join(", ")}
                                     </p>
                                 ) : (
                                     <p className="text-[#5C6070] italic">Not provided yet</p>

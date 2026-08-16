@@ -134,20 +134,38 @@ export default function CustomerServicesPage() {
 
             const list = Array.from(uniqueMap.values());
 
-            // Emergency work is always prioritized; each group is then chronological.
-            list.sort((a, b) => {
-                if (a.is_emergency !== b.is_emergency) {
-                    return a.is_emergency ? -1 : 1;
+            const getBookingPriority = (booking: any) => {
+                const status = booking.status?.toUpperCase() || "";
+                const isEmergency = booking.is_emergency || booking.isEmergency || booking.category === "Emergency" || booking.serviceCategory === "Emergency" || booking.service_category === "Emergency";
+
+                // Cancelled bookings always rank lowest (bottom of list)
+                if (status === "CANCELLED" || status === "CANCELED") return 4;
+                
+                // Completed bookings rank just above cancelled
+                if (status === "COMPLETED") return 3;
+
+                // Active Emergency bookings rank highest (top of list)
+                if (isEmergency) return 1;
+
+                // Active Standard/Other bookings
+                return 2;
+            };
+
+            const sortedList = [...list].sort((a, b) => {
+                const priorityA = getBookingPriority(a);
+                const priorityB = getBookingPriority(b);
+
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB; // Primary sort by status/type priority
                 }
-                const startTimeA = extractStartTime(a.preferred_time);
-                const startTimeB = extractStartTime(b.preferred_time);
-                const dateA = new Date(`${a.preferred_date || ""} ${startTimeA}`).getTime();
-                const dateB = new Date(`${b.preferred_date || ""} ${startTimeB}`).getTime();
-                if (isNaN(dateA) || isNaN(dateB)) return 0;
-                return dateA - dateB;
+
+                // Secondary sort: Most recent date first within the same priority group
+                const dateA = new Date(a.createdAt || a.preferred_date || a.date || 0).getTime();
+                const dateB = new Date(b.createdAt || b.preferred_date || b.date || 0).getTime();
+                return dateB - dateA;
             });
 
-            setServices(list);
+            setServices(sortedList);
         } catch (err: any) {
             console.error("Fetch Services Error:", err.message);
             setErrorMessage(err.message || "Could not retrieve service records.");

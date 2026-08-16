@@ -97,17 +97,19 @@ export default function DetailsFormPage() {
   const { user, isLoading, setUserProfile } = useAuth();
   const router = useRouter();
 
-  // Redirect already-registered or coordinator/admin users to their role-based home page
-  useEffect(() => {
-    const isSpecialRole = user?.role === "COORDINATOR" || user?.role === "ADMIN";
-    if (!isLoading && (user?.onboardingCompleted || isSpecialRole)) {
-      router.replace(getRoleBasedRoute(user.role));
-    }
-  }, [isLoading, user, router]);
-
   const [form, setForm] = useState({ name: "", phone: "", age: "", gender: "", street: "", city: "", postalCode: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  // Redirect already-registered or coordinator/admin users to their role-based home page
+  useEffect(() => {
+    if (isLoading || !user) return;
+    const roleUpper = user.role?.toUpperCase().trim();
+    const isSpecialRole = roleUpper === "COORDINATOR" || roleUpper === "ADMIN" || roleUpper === "SUPER_ADMIN";
+    if (user.onboardingCompleted || isSpecialRole) {
+      router.replace(getRoleBasedRoute(user.role, user.onboardingCompleted));
+    }
+  }, [isLoading, user, router]);
 
   useEffect(() => {
     if (user) {
@@ -123,6 +125,14 @@ export default function DetailsFormPage() {
       }));
     }
   }, [user]);
+
+  // Return null during render to prevent rendering details form while redirecting special roles
+  if (user) {
+    const roleUpper = user.role?.toUpperCase().trim();
+    if (roleUpper === "ADMIN" || roleUpper === "SUPER_ADMIN" || roleUpper === "COORDINATOR") {
+      return null;
+    }
+  }
 
   const set = (field: string, val: string) => {
     setForm(prev => ({ ...prev, [field]: val }));

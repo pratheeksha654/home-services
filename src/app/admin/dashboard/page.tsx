@@ -100,7 +100,7 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    if (user && user.role === "ADMIN") {
+    if (user && (user.role === "ADMIN" || user.role === "SUPER_ADMIN")) {
       fetchDashboardData();
     }
   }, [user]);

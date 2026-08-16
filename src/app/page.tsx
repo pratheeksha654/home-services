@@ -11,7 +11,7 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading) {
       if (user && user.role) {
-        router.replace(getRoleBasedRoute(user.role));
+        router.replace(getRoleBasedRoute(user.role, user.onboardingCompleted));
       } else {
         router.replace("/login");
       }

@@ -6,6 +6,7 @@ import {
   CalendarDays,
   ClipboardList,
   UserCheck,
+  Heart,
 } from "lucide-react";
 
 import QuickActionCard from "./QuickActionCard";
@@ -27,8 +28,14 @@ const actions = [
     icon: AlertTriangle,
     color: "bg-red-500",
   },
-  
- 
+  {
+    title: "Phone / Elderly Booking",
+    description:
+      "Create phone-assisted elderly care bookings with special care instructions.",
+    href: "/coordinator/elderly-booking",
+    icon: Heart,
+    color: "bg-rose-500",
+  },
   {
     title: "Technician Applications",
     description:
