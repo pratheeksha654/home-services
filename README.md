@@ -282,10 +282,3 @@ The database is modelled with **Prisma ORM** and hosted on **Supabase (PostgreSQ
 
 ---
 
-## License
-
-ISC
-
----
-
-> Built with ❤️ using Next.js, Express, Prisma, and Supabase
