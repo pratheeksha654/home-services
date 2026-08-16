@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Edit2, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 // Matches exact fields from your 'profiles' database table
 interface ProfileData {
@@ -15,9 +16,11 @@ interface ProfileData {
     city: string;
     postalCode: string;
     avatar: string;
+    age?: string;
 }
 
 export default function CustomerProfilePage() {
+    const { updateUser } = useAuth();
     const [profile, setProfile] = useState<ProfileData>({
         name: "",
         email: "",
@@ -28,12 +31,14 @@ export default function CustomerProfilePage() {
         city: "",
         postalCode: "",
         avatar: "",
+        age: "",
     });
 
     // Dedicated Form State for editing (matches technician profile pattern)
     const [formData, setFormData] = useState({
         name: "",
         phone: "",
+        age: "",
         street: "",
         city: "",
         postalCode: "",
@@ -119,6 +124,7 @@ export default function CustomerProfilePage() {
                 city: profileObj.city || "",
                 postalCode: profileObj.postalCode || "",
                 avatar: profileObj.avatar || "",
+                age: profileObj.age ? String(profileObj.age) : "",
             };
 
             setProfile(loadedData);
@@ -148,6 +154,7 @@ export default function CustomerProfilePage() {
             setFormData({
                 name: profile.name || "",
                 phone: profile.phone || "",
+                age: profile.age || "",
                 street: profile.street || "",
                 city: profile.city || "",
                 postalCode: profile.postalCode || "",
@@ -247,6 +254,7 @@ export default function CustomerProfilePage() {
                 city: formData.city,
                 postalCode: formData.postalCode,
                 avatar: avatarUrl,
+                age: formData.age ? Number(formData.age) : undefined,
             };
 
             const res = await fetch(`${API_BASE_URL}/user/profile`, {
@@ -274,6 +282,19 @@ export default function CustomerProfilePage() {
             const responseData = await res.json();
             const updatedUser = responseData?.data?.user || responseData?.data || responseData;
 
+            const finalAge = updatedUser.age ? String(updatedUser.age) : profile.age;
+
+            // Update global user state in AuthContext so components like Navbar re-render instantly
+            updateUser({
+                name: updatedUser.name ?? profile.name,
+                phone: updatedUser.phone ?? profile.phone,
+                street: updatedUser.street ?? profile.street,
+                city: updatedUser.city ?? profile.city,
+                postalCode: updatedUser.postalCode ?? profile.postalCode,
+                avatar: updatedUser.avatar ?? avatarUrl,
+                age: finalAge ? Number(finalAge) : undefined,
+            });
+
             // Update base profile state with newly returned server data
             setProfile((prev) => ({
                 ...prev,
@@ -284,6 +305,7 @@ export default function CustomerProfilePage() {
                 city: updatedUser.city ?? prev.city,
                 postalCode: updatedUser.postalCode ?? prev.postalCode,
                 avatar: updatedUser.avatar ?? avatarUrl,
+                age: finalAge,
             }));
 
             if (previewUrlRef.current) {
@@ -439,6 +461,23 @@ export default function CustomerProfilePage() {
                                         disabled={!isEditing}
                                         value={isEditing ? formData.phone : profile.phone}
                                         onChange={handleInputChange}
+                                        className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C8A55E] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs text-[#9CA0AE] mb-1.5 font-medium">
+                                        Age
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="age"
+                                        disabled={!isEditing}
+                                        value={isEditing ? formData.age : profile.age}
+                                        onChange={handleInputChange}
+                                        min="1"
+                                        max="120"
+                                        placeholder="Enter your age"
                                         className="w-full bg-[#14161E] border border-[rgba(255,255,255,0.1)] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#C8A55E] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                                     />
                                 </div>

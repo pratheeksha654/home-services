@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import StatsCard from "./StatsCard";
 import { motion } from "framer-motion";
 import {
@@ -10,7 +10,9 @@ import {
   AlertTriangle,
   BriefcaseBusiness,
   ClipboardList,
+  Heart,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface SummaryData {
   totalBookings: number;
@@ -18,6 +20,8 @@ interface SummaryData {
   emergency: number;
   activeServices: number;
   completed: number;
+  elderlyPending: number;
+  emergencyBookings: number;
   todaysServices: number;
 }
 
@@ -27,31 +31,100 @@ const defaultSummary: SummaryData = {
   emergency: 0,
   activeServices: 0,
   completed: 0,
+  elderlyPending: 0,
+  emergencyBookings: 0,
   todaysServices: 0,
 };
 
 export default function SummaryCards() {
   const [summary, setSummary] = useState<SummaryData>(defaultSummary);
   const [loading, setLoading] = useState(true);
+  const { getToken } = useAuth();
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
+
+  const fetchSummary = useCallback(async () => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!backendUrl) {
+        throw new Error("Missing NEXT_PUBLIC_API_URL environment variable.");
+      }
+
+      const token = getTokenRef.current?.();
+
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const url = `${backendUrl}/coordinator/dashboard-summary`;
+
+      const res = await fetch(url, {
+        method: "GET",
+        headers,
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      let data: unknown;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Invalid JSON response from server.");
+      }
+
+      if (data && typeof data === "object" && "success" in data && "data" in data) {
+        const payload = data as { success: boolean; data: { summary?: Partial<SummaryData> } };
+        if (payload.success && payload.data?.summary) {
+          setSummary((prev) => ({ ...prev, ...payload.data.summary }));
+          return;
+        }
+      }
+
+      throw new Error("Unexpected response format.");
+    } catch (error) {
+      console.error("Failed to load dashboard summary:", error);
+      setSummary(defaultSummary);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
-        const res = await fetch(`${backendUrl}/coordinator/dashboard-summary`);
-        const data = await res.json();
-        if (data?.data?.summary) {
-          setSummary(data.data.summary);
-        }
-      } catch (error) {
-        console.error("Failed to load dashboard summary", error);
-      } finally {
-        setLoading(false);
-      }
+    let mounted = true;
+
+    const load = async () => {
+      if (!mounted) return;
+      await fetchSummary();
     };
 
-    fetchSummary();
-  }, []);
+    load();
+
+    // Only run interval/side-effects in the browser
+    if (typeof window !== "undefined") {
+      const intervalId = window.setInterval(() => {
+        if (mounted) fetchSummary();
+      }, 30000);
+
+      const handleFocus = () => {
+        if (mounted) fetchSummary();
+      };
+
+      window.addEventListener("focus", handleFocus);
+
+      return () => {
+        mounted = false;
+        window.clearInterval(intervalId);
+        window.removeEventListener("focus", handleFocus);
+      };
+    }
+  }, [fetchSummary]);
 
   const cards = [
     {
@@ -65,6 +138,12 @@ export default function SummaryCards() {
       value: summary.pendingRequests,
       icon: Clock3,
       color: "text-orange-400",
+    },
+    {
+      title: "Elderly Pending",
+      value: summary.elderlyPending,
+      icon: Heart,
+      color: "text-rose-400",
     },
     {
       title: "Emergency",
@@ -84,7 +163,6 @@ export default function SummaryCards() {
       icon: CheckCircle2,
       color: "text-green-400",
     },
-   
   ];
 
   return (

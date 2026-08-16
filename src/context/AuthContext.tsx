@@ -28,6 +28,7 @@ export interface User {
   avatar?: string;
   avatarUrl?: string;
 
+  age?: number | string;
   ageCategory?: string;
   gender?: string;
   address?: UserAddress;
@@ -59,6 +60,7 @@ export interface SignupData {
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
+  loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: (redirectTo?: string) => Promise<{ success: boolean; error?: string }>;
   signup: (data: SignupData) => Promise<{ success: boolean; error?: string }>;
@@ -69,6 +71,7 @@ interface AuthContextValue {
   setUserProfile: (data: ProfileData) => Promise<{ success: boolean; error?: string }>;
   setRole: (role: UserRole) => Promise<{ success: boolean; error?: string }>;
   completeOnboarding: () => Promise<{ success: boolean; error?: string }>;
+  updateUser: (updatedData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -79,48 +82,63 @@ const STORAGE_TOKEN_KEY = "homefixpro_token";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
-export function getRoleBasedRoute(role?: string): string {
-  switch (role?.toUpperCase()) {
+export function getRoleBasedRoute(role?: string, onboardingCompleted?: boolean): string {
+  const roleUpper = role?.toUpperCase().trim();
+  switch (roleUpper) {
+    case "SUPER_ADMIN":
     case "ADMIN":
       return "/admin/dashboard";
     case "COORDINATOR":
       return "/coordinator/dashboard";
     case "CUSTOMER":
-      return "/customer";
+      return onboardingCompleted === false ? "/onboarding/details" : "/customer";
     case "TECHNICIAN":
-      return "/technician/pending";
+      return "/technician";
     case "TECHNICIAN_PENDING":
       return "/technician/pending";
     case "TECHNICIAN_REJECTED":
     case "REJECTED":
       return "/technician/rejected";
     default:
-      return "/customer";
+      return onboardingCompleted === false ? "/onboarding/details" : "/customer";
   }
 }
 
 function getStoredSession(): User | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(STORAGE_SESSION_KEY);
+    const raw = localStorage.getItem("user") || localStorage.getItem(STORAGE_SESSION_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function saveSession(user: User, token: string) {
+function saveSession(user: User, token: string, notifySync = true) {
+  localStorage.setItem("user", JSON.stringify(user));
   localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(user));
   if (token) {
     localStorage.setItem(STORAGE_TOKEN_KEY, token);
     localStorage.setItem("token", token);
   }
+  if (notifySync && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("storage_sync"));
+  }
 }
 
 function clearSession() {
-  localStorage.removeItem(STORAGE_SESSION_KEY);
-  localStorage.removeItem(STORAGE_TOKEN_KEY);
-  localStorage.removeItem("token");
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("user");
+    localStorage.removeItem(STORAGE_SESSION_KEY);
+    localStorage.removeItem(STORAGE_TOKEN_KEY);
+    localStorage.removeItem("token");
+    Object.keys(localStorage).forEach((key) => {
+      if (key.includes("supabase") || key.includes("sb-") || key.includes("auth")) {
+        localStorage.removeItem(key);
+      }
+    });
+    window.dispatchEvent(new Event("storage_sync"));
+  }
 }
 
 function getToken(): string | null {
@@ -155,7 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.ok && resData.success) {
         const fetchedUser: User = resData.data.user || resData.data;
         setUser(fetchedUser);
-        saveSession(fetchedUser, token);
+        saveSession(fetchedUser, token, false);
         return fetchedUser;
       }
 
@@ -172,12 +190,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const handleSync = () => {
+      const session = getStoredSession();
+      setUser(session);
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", handleSync);
+      window.addEventListener("storage_sync", handleSync);
+    }
+
     const session = getStoredSession();
     if (session) {
       setUser(session);
     }
     // Pull fresh data from backend on mount
     fetchProfile();
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("storage", handleSync);
+        window.removeEventListener("storage_sync", handleSync);
+      }
+    };
   }, [fetchProfile]);
 
   const login = useCallback(
@@ -207,12 +242,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(sessionUser);
         saveSession(sessionUser, token);
 
-        const isSpecialRole = sessionUser.role === "COORDINATOR" || sessionUser.role === "ADMIN";
-        if (!sessionUser.onboardingCompleted && !isSpecialRole) {
-          router.push("/onboarding/details");
-        } else {
-          router.push(getRoleBasedRoute(sessionUser.role));
-        }
+        const targetRoute = getRoleBasedRoute(sessionUser.role, sessionUser.onboardingCompleted);
+        router.replace(targetRoute);
         return { success: true };
       } catch (error) {
         console.error("Login error:", error);
@@ -228,21 +259,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(
-    async (redirectTo?: string): Promise<{ success: boolean; error?: string }> => {
+    async (param?: string): Promise<{ success: boolean; error?: string }> => {
       try {
-        const dest = redirectTo || `${window.location.origin}/auth/callback`;
-        const response = await fetch(`${API_URL}/auth/google?redirectTo=${encodeURIComponent(dest)}`);
-        const data = await response.json();
+        const dest = typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "";
+        const redirectTarget = param && (param.startsWith("http") || param.includes("/")) ? param : dest;
 
-        if (!response.ok || !data.success || !data.data?.url) {
-          return { success: false, error: data.message || "Failed to initiate Google sign in." };
+        // If the parameter is a Google ID token or token string (POST flow)
+        if (param && !param.startsWith("http") && !param.includes("/")) {
+          const res = await fetch(`${API_URL}/auth/google`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ token: param }),
+          }).catch((err) => {
+            throw new Error(err.message || "Unable to connect to authentication server. Please verify backend server is running.");
+          });
+
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.message || "Google authentication failed");
+          }
+
+          const resData = await res.json();
+          const token = resData.token || resData.data?.access_token || resData.data?.token;
+          const sessionUser = resData.user || resData.data?.user;
+
+          if (token && sessionUser) {
+            setUser(sessionUser);
+            saveSession(sessionUser, token);
+          }
+          return { success: true };
+        } else {
+          // Standard GET Redirect Flow
+          const response = await fetch(`${API_URL}/auth/google?redirectTo=${encodeURIComponent(redirectTarget)}`).catch((err) => {
+            throw new Error(err.message || "Unable to connect to authentication server. Please verify backend server is running.");
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || "Failed to initiate Google sign in");
+          }
+
+          const data = await response.json();
+
+          if (!data.success || !data.data?.url) {
+            return { success: false, error: data.message || "Failed to initiate Google sign in." };
+          }
+
+          if (typeof window !== "undefined") {
+            window.location.href = data.data.url;
+          }
+          return { success: true };
         }
-
-        window.location.href = data.data.url;
-        return { success: true };
-      } catch (error) {
-        console.error("Google login error:", error);
-        return { success: false, error: "Network error. Please try again." };
+      } catch (err: any) {
+        console.error("Google login fetch error:", err);
+        return {
+          success: false,
+          error: err.message || "Unable to connect to authentication server. Please verify backend server is running."
+        };
       }
     },
     []
@@ -348,7 +423,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           name: data.name,
           phone: data.phone,
-          ageCategory: data.age,
+          age: data.age,
           gender: data.gender,
           street: data.address?.street,
           city: data.address?.city,
@@ -369,6 +444,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     name: data.name,
     phone: data.phone || prev.phone,
     ageCategory: data.age,
+    age: data.age,
     gender: data.gender,
 
     street: data.address.street,
@@ -443,11 +519,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   }, []);
 
+  const updateUser = useCallback((updatedData: Partial<User>) => {
+    setUser((prevUser) => {
+      if (!prevUser) return null;
+      const newUser = { ...prevUser, ...updatedData };
+      localStorage.setItem("user", JSON.stringify(newUser));
+      localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(newUser));
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("storage_sync"));
+      }
+      return newUser;
+    });
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
+        loading: isLoading,
         login,
         loginWithGoogle,
         signup,
@@ -458,6 +548,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserProfile,
         setRole,
         completeOnboarding,
+        updateUser,
       }}
     >
       {children}

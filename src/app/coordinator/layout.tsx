@@ -5,15 +5,15 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import AuthGuard from "@/components/auth/AuthGuard";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function CoordinatorLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGuard>
-      <AdminProtection>{children}</AdminProtection>
+      <CoordinatorProtection>{children}</CoordinatorProtection>
     </AuthGuard>
   );
 }
 
-function AdminProtection({ children }: { children: React.ReactNode }) {
+function CoordinatorProtection({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -28,8 +28,12 @@ function AdminProtection({ children }: { children: React.ReactNode }) {
 
     const roleUpper = user.role?.toUpperCase().trim();
 
-    if (pathname.startsWith("/admin") && roleUpper !== "ADMIN" && roleUpper !== "SUPER_ADMIN") {
-      router.replace(roleUpper === "COORDINATOR" ? "/coordinator/dashboard" : "/customer");
+    if (pathname.startsWith("/coordinator") && roleUpper !== "COORDINATOR") {
+      if (roleUpper === "ADMIN" || roleUpper === "SUPER_ADMIN") {
+        router.replace("/admin/dashboard");
+      } else {
+        router.replace("/customer");
+      }
       return;
     }
   }, [user, loading, pathname, router]);
@@ -43,15 +47,9 @@ function AdminProtection({ children }: { children: React.ReactNode }) {
   }
 
   const roleUpper = user?.role?.toUpperCase().trim();
-  if (!user || (roleUpper !== "ADMIN" && roleUpper !== "SUPER_ADMIN")) {
+  if (!user || roleUpper !== "COORDINATOR") {
     return null;
   }
 
-  return (
-    <div className="min-h-screen bg-[#08090D] flex flex-col">
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-8 py-6 md:py-10">
-        {children}
-      </div>
-    </div>
-  );
+  return <>{children}</>;
 }

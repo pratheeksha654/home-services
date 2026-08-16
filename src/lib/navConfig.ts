@@ -11,9 +11,10 @@ export const ROLE_NAV_LINKS: Record<string, NavItem[]> = {
         { href: "/admin/coordinators", label: "Coordinators" },
     ],
     COORDINATOR: [
-        { href: "/coordinator/dashboard", label: "Home" },
+        { href: "/coordinator/dashboard", label: "Dashboard" },
         { href: "/coordinator/applications", label: "Applications" },
-        { href: "/about", label: "About Us" },
+        { href: "/coordinator/elderly-booking", label: "Bookings" },
+        { href: "/coordinator/emergency-requests", label: "Emergency Requests" },
     ],
     CUSTOMER: [
         { href: "/customer", label: "Home" },
@@ -37,6 +38,7 @@ export const ROLE_NAV_LINKS: Record<string, NavItem[]> = {
 
 // Aliases
 ROLE_NAV_LINKS.TECHNICIAN_PENDING = ROLE_NAV_LINKS.TECHNICIAN;
+ROLE_NAV_LINKS.SUPER_ADMIN = ROLE_NAV_LINKS.ADMIN;
 
 
 /**

@@ -45,29 +45,42 @@ export default function DispatcherEmergencyRequestsPage() {
 
       const headers: HeadersInit = {
         "Content-Type": "application/json",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
         ...(token ? { "Authorization": `Bearer ${token}` } : {})
       };
 
       // Append a timestamp to prevent 304 caching issues
       const timestamp = new Date().getTime();
 
-      const [requestsResponse, techniciansResponse] = await Promise.all([
-        fetch(`${API_URL}/emergency-requests?_t=${timestamp}`, { headers, cache: "no-store" }),
-        fetch(`${API_URL}/technicians?approval_status=Approved&availability=Available&_t=${timestamp}`, { headers, cache: "no-store" }),
-      ]);
+      let requestsPayload: any = [];
+      let techniciansPayload: any = [];
 
-      if (!requestsResponse.ok) {
-        throw new Error("Unable to load emergency requests right now.");
+      try {
+        const res = await fetch(`${API_URL}/emergency-requests?_t=${timestamp}`, { headers, cache: "no-store" });
+        if (res.ok) {
+          requestsPayload = await res.json();
+        } else {
+          console.error("Emergency requests fetch returned status:", res.status);
+        }
+      } catch (err) {
+        console.error("Network error fetching emergency requests:", err);
       }
 
-      const requestsPayload = await requestsResponse.json();
-      const techniciansPayload = techniciansResponse.ok ? await techniciansResponse.json() : null;
+      try {
+        const res = await fetch(`${API_URL}/technicians?approval_status=Approved&availability=Available&_t=${timestamp}`, { headers, cache: "no-store" });
+        if (res.ok) {
+          techniciansPayload = await res.json();
+        } else {
+          console.error("Technicians fetch returned status:", res.status);
+        }
+      } catch (err) {
+        console.error("Network error fetching technicians:", err);
+      }
 
       // Keep the response envelope intact: the mapper reads the canonical
       // `data.emergencyRequests` field returned by the backend.
-      setRequests(mapEmergencyRequests(requestsPayload));
+      const mappedEmergencyRequests = mapEmergencyRequests(requestsPayload);
+
+      setRequests(mappedEmergencyRequests);
 
       const rawTechs = techniciansPayload?.data?.technicians ?? techniciansPayload?.data ?? techniciansPayload;
       const techArray = Array.isArray(rawTechs) ? rawTechs : (rawTechs ? [rawTechs] : []);
