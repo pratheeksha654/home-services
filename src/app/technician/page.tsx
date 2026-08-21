@@ -54,8 +54,8 @@ export default function TechnicianDashboard() {
   useEffect(() => {
     if (!isLoading && !user) {
       router.replace("/login");
-    } else if (!isLoading && user?.role !== "TECHNICIAN") {
-      if (user?.role === "TECHNICIAN_PENDING") {
+    } else if (!isLoading && user?.role?.toUpperCase() !== "TECHNICIAN") {
+      if (user?.role?.toUpperCase() === "TECHNICIAN_PENDING") {
         router.replace("/technician/pending");
       }
     }

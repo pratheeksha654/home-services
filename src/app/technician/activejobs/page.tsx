@@ -113,13 +113,13 @@ setJobs((prev) => {
       return;
     }
 
-    if (!isLoading && user?.role === "TECHNICIAN_PENDING") {
+    if (!isLoading && user?.role?.toUpperCase() === "TECHNICIAN_PENDING") {
       router.replace("/technician/pending");
     }
   }, [isLoading, router, user]);
 
   useEffect(() => {
-    if (user?.role !== "TECHNICIAN") return;
+    if (user?.role?.toUpperCase() !== "TECHNICIAN") return;
 
     void fetchJobs();
     const interval = window.setInterval(() => {

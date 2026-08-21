@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -64,20 +64,7 @@ export default function AuthCallbackPage() {
 
         setSession(sessionUser, token || "");
 
-        const role = sessionUser.role?.toUpperCase().trim();
-        const onboardingCompleted = sessionUser.onboardingCompleted;
-
-        let targetRoute = "/customer";
-        if (role === "ADMIN" || role === "SUPER_ADMIN") {
-          targetRoute = "/admin/dashboard";
-        } else if (role === "COORDINATOR") {
-          targetRoute = "/coordinator/dashboard";
-        } else if (onboardingCompleted === false) {
-          targetRoute = "/onboarding/details";
-        } else {
-          targetRoute = "/customer";
-        }
-
+        const targetRoute = getRoleBasedRoute(sessionUser.role, sessionUser.onboardingCompleted);
         router.replace(targetRoute);
       } catch (err) {
         console.error("Auth callback error:", err);

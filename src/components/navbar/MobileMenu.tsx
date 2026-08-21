@@ -17,6 +17,7 @@ interface MobileMenuProps {
     mobileMenuRef: React.RefObject<HTMLDivElement | null>;
     setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
     logout: () => void;
+    unreadCount: number;
 }
 
 export function MobileMenu({
@@ -30,6 +31,7 @@ export function MobileMenu({
     mobileMenuRef,
     setMobileMenuOpen,
     logout,
+    unreadCount,
 }: MobileMenuProps) {
     const navItems = getNavLinksForRole(isLoggedIn ? role : null);
 
@@ -40,7 +42,7 @@ export function MobileMenu({
                 onClick={() => setMobileMenuOpen((value) => !value)}
                 aria-label="Toggle navigation menu"
                 aria-expanded={mobileMenuOpen}
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#14161E]/60 border border-[rgba(255,255,255,0.08)] text-[#ECEDF0] hover:bg-[#14161E] transition-colors duration-200 focus:outline-none"
+                className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-[#14161E]/60 border border-[rgba(255,255,255,0.08)] text-[#ECEDF0] hover:bg-[#14161E] transition-colors duration-200 focus:outline-none"
             >
                 <svg
                     className="w-5 h-5"
@@ -59,6 +61,11 @@ export function MobileMenu({
                         }
                     />
                 </svg>
+                {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-red-500 rounded-full border border-[#0A0B10] flex items-center justify-center text-[8px] font-bold text-white">
+                        {unreadCount}
+                    </span>
+                )}
             </button>
 
             {mobileMenuOpen && (
@@ -115,7 +122,14 @@ export function MobileMenu({
                                         onClick={() => setMobileMenuOpen(false)}
                                         className="flex items-center justify-between rounded-xl px-4 py-3 text-sm bg-[#14161E]/60 text-[#ECEDF0] border border-[rgba(255,255,255,0.06)] hover:bg-[#14161E] transition-colors duration-200"
                                     >
-                                        Notifications
+                                        <div className="flex items-center gap-2">
+                                            <span>Notifications</span>
+                                            {unreadCount > 0 && (
+                                                <span className="flex h-5 px-2 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                                                    {unreadCount}
+                                                </span>
+                                            )}
+                                        </div>
                                         <span className="text-[#5C6070]">→</span>
                                     </Link>
                                     <Link

@@ -11,7 +11,7 @@ import GlassButton from "@/components/ui/GlassButton";
 export default function TechnicianPendingPage() {
   const { user, getToken, fetchProfile } = useAuth();
   const router = useRouter();
-  const isApproved = user?.role === "TECHNICIAN";
+  const isApproved = user?.role?.toUpperCase() === "TECHNICIAN";
 
   useEffect(() => {
     const checkStatus = async () => {
