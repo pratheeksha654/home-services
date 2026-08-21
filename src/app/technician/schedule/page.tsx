@@ -78,13 +78,13 @@ export default function TechnicianSchedulePage() {
   useEffect(() => {
     if (!isLoading && !user) {
       router.replace("/login");
-    } else if (!isLoading && user?.role === "TECHNICIAN_PENDING") {
+    } else if (!isLoading && user?.role?.toUpperCase() === "TECHNICIAN_PENDING") {
       router.replace("/technician/pending");
     }
   }, [isLoading, router, user]);
 
   useEffect(() => {
-    if (user && user.role === "TECHNICIAN") {
+    if (user && user.role?.toUpperCase() === "TECHNICIAN") {
       fetchJobs();
     }
   }, [fetchJobs, user]);
