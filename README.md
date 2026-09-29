@@ -1,105 +1,284 @@
-# FixNest - Home Service Marketplace Frontend
+# 🏠 FixNest - Home Services Platform
 
-FixNest is a modern, responsive, and real-time Home Service Marketplace web application built with Next.js (App Router), TypeScript, and TailwindCSS. It provides a seamless experience for customers, service technicians, and system coordinators/admins.
+A full-stack home services management platform that connects **customers** with **technicians** for on-demand repair, maintenance, and emergency services. Built with a role-based architecture supporting four user types — Customers, Technicians, Coordinators, and Admins.
+
+---
+
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#-key-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Environment Variables](#-environment-variables)
+- [API Endpoints](#-api-endpoints)
+- [User Roles & Features](#-user-roles--features)
+- [Database Schema](#-database-schema)
+- [Scripts](#-scripts)
+
+---
+
+## Overview
+
+FixNest streamlines the process of booking, assigning, and tracking home service jobs. Customers can browse services, place bookings (including emergency requests), and track technician arrivals in real-time on an interactive map. Coordinators manage the operations pipeline — reviewing bookings, assigning technicians, and monitoring dashboards. Admins oversee the entire system including user management and coordinator onboarding.
 
 ---
 
 ## 🚀 Key Features
 
-* **Role-Based Workflows**: Tailored user experiences for **Customers**, **Technicians**, and **Coordinators (Admins)**.
+* **Role-Based Workflows**: Tailored user experiences for **Customers**, **Technicians**, **Coordinators**, and **Admins**.
 * **Customer Hub**: Dynamic category browsing, seamless booking management, standard and emergency request creation, and profile personalization.
-* **Technician Onboarding**: Multi-step application system (`TechnicianApplication`) containing professional information forms, qualification reviews, and experience setup.
+* **Technician Onboarding**: Multi-step application system containing professional information forms, qualification reviews, and experience setup.
 * **Technician Workspace**: Schedule management, active job viewing, and progress reporting.
 * **Coordinator Dashboard**: Full administration panel to manage incoming standard and emergency bookings, review & process technician applications, and manually or automatically assign jobs.
-* **Real-time Tracking**: Live Leaflet Maps tracking layout (`BookingTracking`) showing GPS updates, estimated time of arrival (ETA), and progress updates.
+* **Real-time Tracking**: Live Leaflet Maps tracking layout showing GPS updates, estimated time of arrival (ETA), and progress updates.
 * **Premium UI/UX Design**: Stunning visuals utilizing dark modes, subtle micro-animations, custom icons, and fully responsive layouts.
-
----
-
-## 📂 Project Directory Structure
-
-```text
-frontend/
-├── public/                # Static assets, images, and brand icons
-└── src/
-    ├── app/               # Next.js App Router (Pages, Layouts & Routing)
-    │   ├── about/         # About Page
-    │   ├── auth/          # Authentication pages (login/signup components)
-    │   ├── coordinator/   # Coordinator/Admin pages (Dashboard, applications, assignments)
-    │   ├── customer/      # Customer-facing portals (Booking, history)
-    │   ├── login/         # Primary login view
-    │   ├── onboarding/    # Multi-step role selection page
-    │   ├── privacy-policy/# Policy page
-    │   ├── profile/       # User profile details and settings
-    │   ├── technician/    # Technician portals (Schedule, application form)
-    │   ├── terms/         # Terms of Service
-    │   ├── globals.css    # Core design system configuration and styling
-    │   └── layout.tsx     # Global page layout wrapping Context providers
-    ├── components/        # Reusable UI Components
-    │   ├── ui/            # Form inputs (GlassInput, widgets, overlays)
-    │   ├── auth/          # Authentication layouts and guards
-    │   ├── cards/         # Booking, technician, and category cards
-    │   ├── coordinator/   # Admin dashboard specific widgets
-    │   ├── technicianForm/# Wizard steps for technician applications
-    │   ├── Footer.tsx     # Global footers
-    │   ├── Navbar.tsx     # Role-aware responsive navigation bar
-    │   └── TrackingMap.tsx# Real-time Map component using Leaflet 
-    ├── context/           # React context state (AuthContext for user state, JWT tokens)
-    ├── data/              # Static frontend resources and structural constants
-    ├── lib/               # Utility functions, normalization utilities, and API wrappers
-    └── types/             # TypeScript type declarations for strict safety
-```
 
 ---
 
 ## 🛠️ Tech Stack
 
-* **Core Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-* **Language**: [TypeScript](https://www.typescriptlang.org/) (Strictly typed schemas)
-* **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-* **Maps & Tracking**: [React Leaflet](https://react-leaflet.js.org/)
-* **State & Authentication**: Context API (Local storage & HttpOnly Cookies)
+### Frontend
+| Technology | Purpose |
+|---|---|
+| **Next.js 16** | React framework (App Router) |
+| **React 19** | UI library |
+| **TypeScript** | Type safety |
+| **Tailwind CSS 4** | Utility-first styling |
+| **Framer Motion** | Animations & transitions |
+| **Leaflet / React-Leaflet** | Interactive maps for live tracking |
+| **Lucide React & React Icons** | Icon libraries |
+| **Supabase JS** | Client-side auth & real-time |
+
+### Backend
+| Technology | Purpose |
+|---|---|
+| **Express 5** | REST API framework |
+| **Prisma ORM** | Database access & migrations |
+| **PostgreSQL** | Relational database (via Supabase) |
+| **Supabase** | Auth, database hosting, real-time |
+| **Node.js** | Runtime environment |
 
 ---
 
-## ⚙️ Environment Variables Setup
+## 📂 Project Structure
 
-Create a `.env.local` file in the root of the `frontend/` directory and configure the backend connection URL:
-
-```env
-NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+```
+Home-service/
+├── frontend/                  # Next.js 16 application
+│   ├── src/
+│   │   ├── app/               # App Router pages & layouts
+│   │   │   ├── admin/         # Admin dashboard, user & coordinator management
+│   │   │   ├── auth/          # Authentication callback
+│   │   │   ├── coordinator/   # Coordinator dashboard, assignments, applications
+│   │   │   ├── customer/      # Customer homepage, booking, tracking, services
+│   │   │   ├── technician/    # Technician dashboard, jobs, schedule, applications
+│   │   │   ├── login/         # Login page
+│   │   │   ├── onboarding/    # New user onboarding
+│   │   │   ├── profile/       # User profile management
+│   │   │   ├── about/         # About page
+│   │   │   ├── privacy-policy/
+│   │   │   └── terms/
+│   │   ├── components/        # Reusable UI components
+│   │   │   ├── payment/       # Payment summary modals
+│   │   │   ├── coordinator/   # Coordinator-specific components
+│   │   │   ├── cards/         # Service & info cards
+│   │   │   ├── ui/            # Base UI components
+│   │   │   ├── auth/          # Auth guard components
+│   │   │   ├── navbar/        # Navigation components
+│   │   │   ├── navbar.tsx     # Main navigation bar
+│   │   │   ├── footer.tsx     # Footer
+│   │   │   └── tracking-map.tsx # Real-time map tracking
+│   │   ├── context/           # React context providers
+│   │   │   └── auth-context.tsx # Authentication state management
+│   │   ├── lib/               # Utility libraries (Supabase client, etc.)
+│   │   ├── types/             # TypeScript type definitions
+│   │   └── data/              # Static data & constants
+│   └── public/                # Static assets
+│
+├── backend/                   # Express.js API server
+│   ├── src/
+│   │   ├── controllers/       # Route handlers / business logic
+│   │   ├── routes/            # Express route definitions
+│   │   ├── middleware/        # Auth & admin middleware
+│   │   ├── services/          # Business service layer
+│   │   ├── validators/        # Request validation
+│   │   ├── utils/             # Helper utilities
+│   │   ├── config/            # App configuration
+│   │   ├── data/              # Seed data / constants
+│   │   └── index.js           # Server entry point
+│   ├── prisma/
+│   │   ├── schema.prisma      # Database schema
+│   │   └── migrations/        # Database migrations
+│   └── scripts/               # Utility scripts (e.g., make-admin)
+│
+└── README.md
 ```
 
 ---
 
 ## 🚦 Getting Started
 
-Follow these steps to run the frontend locally:
+### Prerequisites
 
-### 1. Install Dependencies
-Run the following command in your terminal inside the `frontend` folder:
+- **Node.js** ≥ 18
+- **npm** or **yarn**
+- A **Supabase** project (for database & authentication)
+
+### 1. Clone the Repository
+
 ```bash
+git clone https://github.com/pratheeksha654/home-services.git
+cd Home-service
+```
+
+### 2. Backend Setup
+
+```bash
+cd backend
 npm install
 ```
 
-### 2. Run the Development Server
+Create a `.env` file in `backend/` (see [Environment Variables](#-environment-variables)).
+
+Run database migrations:
+
+```bash
+npx prisma migrate deploy
+npx prisma generate
+```
+
+Start the development server:
+
 ```bash
 npm run dev
 ```
 
-### 3. Open the Application
-Navigate to [http://localhost:3000](http://localhost:3000) inside your web browser.
+The API will be available at `http://localhost:5000/api/v1`.
+
+### 3. Frontend Setup
+
+```bash
+cd frontend
+npm install
+```
+
+Create a `.env.local` file in `frontend/` (see [Environment Variables](#-environment-variables)).
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:3000`.
 
 ---
 
-## 🧪 Build and Production
+## ⚙️ Environment Variables
 
-To build a production bundle and check for syntax or TypeScript errors:
+### Backend (`backend/.env`)
 
-```bash
-# Build the project
-npm run build
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (pooled via PgBouncer) |
+| `DIRECT_URL` | Direct PostgreSQL connection string (for migrations) |
+| `SUPABASE_URL` | Supabase project reference ID |
+| `SUPABASE_ANON_KEY` | Supabase anonymous/public API key |
 
-# Start production build server
-npm run start
-```
+### Frontend (`frontend/.env.local`)
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Backend API base URL (e.g., `http://localhost:5000/api/v1`) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Full Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous/public API key |
+
+---
+
+## 🌐 API Endpoints
+
+All endpoints are prefixed with `/api/v1`.
+
+| Route Prefix | Description |
+|---|---|
+| `GET /health` | Health check & server status |
+| `/auth` | Authentication (signup, login, callback) |
+| `/users`, `/user` | User profile management |
+| `/services` | Service catalog |
+| `/bookings` | Booking CRUD operations |
+| `/emergency-requests` | Emergency service requests |
+| `/technicians` | Technician management & listings |
+| `/coordinator` | Coordinator operations (assignments, dashboard) |
+| `/tracking` | Real-time booking/technician tracking |
+| `/notifications` | User notifications |
+| `/admin` | Admin-only operations (protected by auth + admin middleware) |
+
+---
+
+## 👥 User Roles & Features
+
+### 🙋 Customer
+- Browse available home services
+- Book normal and emergency services
+- Track technician location in real-time on an interactive map
+- View booking history and status
+- Manage profile
+
+### 🔧 Technician
+- Apply to become a technician (reviewed by coordinators)
+- View and manage active jobs
+- Update job status and location sharing
+- Manage schedule and availability
+- View profile and ratings
+
+### 📋 Coordinator
+- Dashboard with summary cards and job overview
+- Review and process technician applications
+- Assign technicians to bookings
+- Handle emergency requests
+- Monitor booking pipeline
+
+### 🛡️ Admin
+- System-wide dashboard and analytics
+- Manage all users
+- Onboard and manage coordinators
+- Full access to all platform operations
+
+---
+
+## 🗄️ Database Schema
+
+The database is modelled with **Prisma ORM** and hosted on **Supabase (PostgreSQL)**. Key models:
+
+| Model | Description |
+|---|---|
+| `Profile` | User accounts — stores name, contact, role, and address |
+| `Technician` | Technician records — skills, experience, rating, availability |
+| `TechnicianApplication` | Applications from users wanting to become technicians |
+| `Booking` | Service bookings — customer details, service category, schedule, status |
+| `EmergencyRequest` | Urgent service requests with priority levels |
+| `BookingTracking` | Real-time tracking data — technician GPS coordinates, ETA, distance |
+
+---
+
+## 📜 Scripts
+
+### Backend
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start development server with hot-reload (nodemon) |
+| `npm start` | Start production server |
+| `npm run set-role` | Promote a user to admin (`scripts/make-admin.js`) |
+| `npm test` | Run controller unit tests |
+
+### Frontend
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start Next.js dev server |
+| `npm run build` | Create production build |
+| `npm start` | Start production server |
+| `npm run lint` | Run ESLint |
