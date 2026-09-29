@@ -1,6 +1,6 @@
 "use client";
 
-import ServiceCard from "@/components/cards/ServiceCard";
+import ServiceCard from "@/components/cards/service-card";
 import { services } from "@/data/services";
 
 export default function PopularServices() {

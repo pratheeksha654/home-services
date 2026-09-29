@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Edit2, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth-context";
 
 // Matches exact fields from your 'profiles' database table
 interface ProfileData {

@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth-context";
 import { TechnicianApplication } from "@/types/technician";
 
-import FormHeader from "@/components/technicianForm/FormHeader";
-import ProfessionalInfo from "@/components/technicianForm/ProfessionalInfo";
-import AvailabilitySection from "@/components/technicianForm/AvailabilitySection";
-import AboutSection from "@/components/technicianForm/AboutSection";
-import SubmitSection from "@/components/technicianForm/SubmitSection";
+import FormHeader from "@/components/technician-form/form-header";
+import ProfessionalInfo from "@/components/technician-form/professional-info";
+import AvailabilitySection from "@/components/technician-form/availability-section";
+import AboutSection from "@/components/technician-form/about-section";
+import SubmitSection from "@/components/technician-form/submit-section";
 
 export default function TechnicianApplyPage() {
   const router = useRouter();

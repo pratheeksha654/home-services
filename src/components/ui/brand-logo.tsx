@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
+import { useAuth, getRoleBasedRoute } from "@/context/auth-context";
 
 interface BrandLogoProps {
   size?: "sm" | "md" | "lg";

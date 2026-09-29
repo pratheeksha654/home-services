@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Notification } from "@/context/NotificationContext";
+import { Notification } from "@/context/notification-context";
 import { AlertTriangle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 

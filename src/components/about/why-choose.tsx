@@ -8,7 +8,7 @@ import {
   Lock,
 } from "lucide-react";
 
-import GlassCard from "./GlassCard";
+import GlassCard from "./glass-card";
 
 const features = [
   {

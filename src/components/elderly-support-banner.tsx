@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Phone } from "lucide-react";
-import Button from "@/components/ui/Button";
+import Button from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth-context";
 
 export default function ElderlySupportBanner() {
   const router = useRouter();

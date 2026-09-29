@@ -1,8 +1,8 @@
-import Intro from "@/components/about/Intro";
-import Story from "@/components/about/Story";
-import WhyChoose from "@/components/about/WhyChoose";
-import Promise from "@/components/about/Promise";
-import Footer from "@/components/Footer";
+import Intro from "@/components/about/intro";
+import Story from "@/components/about/story";
+import WhyChoose from "@/components/about/why-choose";
+import Promise from "@/components/about/promise";
+import Footer from "@/components/footer";
 
 export default function AboutPage() {
   return (

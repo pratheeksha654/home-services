@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
+import { useAuth, getRoleBasedRoute } from "@/context/auth-context";
 
 interface AuthGuardProps {
   children: React.ReactNode;

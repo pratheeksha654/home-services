@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { RoleBadge } from "./RoleBadge";
+import { RoleBadge } from "./role-badge";
 
 interface ProfileDropdownProps {
     user: any;

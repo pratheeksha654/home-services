@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
+import { useAuth, getRoleBasedRoute } from "@/context/auth-context";
 
 export default function Home() {
   const { user, isLoading } = useAuth();

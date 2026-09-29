@@ -1,9 +1,9 @@
 "use client";
 
 
-import EmergencyForm from "@/app/customer/emergency-booking/EmergencyForm";
-import EmergencyBackground from "@/app/customer/emergency-booking/EmergencyBackground";
-import Footer from "@/components/Footer";
+import EmergencyForm from "@/app/customer/emergency-booking/emergency-form";
+import EmergencyBackground from "@/app/customer/emergency-booking/emergency-background";
+import Footer from "@/components/footer";
 
 export default function EmergencyBookingPage() {
   return (

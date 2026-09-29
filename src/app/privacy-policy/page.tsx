@@ -1,9 +1,9 @@
-import Footer from "@/components/Footer";
-import SecurityCard from "@/components/privacy/SecurityCard";
-import PrivacyHero from "@/components/privacy/PrivacyHero";
-import SectionTitle from "@/components/privacy/SectionTitle";
-import InfoCard from "@/components/privacy/InfoCard";
-import FeatureCard from "@/components/privacy/FeatureCard";
+import Footer from "@/components/footer";
+import SecurityCard from "@/components/privacy/security-card";
+import PrivacyHero from "@/components/privacy/privacy-hero";
+import SectionTitle from "@/components/privacy/section-title";
+import InfoCard from "@/components/privacy/info-card";
+import FeatureCard from "@/components/privacy/feature-card";
 
 import {
   User,

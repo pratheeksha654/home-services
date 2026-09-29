@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
+import { useAuth, getRoleBasedRoute } from "@/context/auth-context";
 
 export default function AuthCallbackPage() {
   const router = useRouter();

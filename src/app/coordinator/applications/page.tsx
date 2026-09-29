@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import AuthGuard from "@/components/auth/AuthGuard";
+import { useAuth } from "@/context/auth-context";
+import AuthGuard from "@/components/auth/auth-guard";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, 
@@ -16,7 +16,7 @@ import {
   ChevronRight,
   Sparkles
 } from "lucide-react";
-import GlassButton from "@/components/ui/GlassButton";
+import GlassButton from "@/components/ui/glass-button";
 
 interface TechnicianApplication {
   id: string;

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, UserRole, getRoleBasedRoute } from "@/context/AuthContext";
-import AuthGuard from "@/components/auth/AuthGuard";
+import { useAuth, UserRole, getRoleBasedRoute } from "@/context/auth-context";
+import AuthGuard from "@/components/auth/auth-guard";
 
 /* ── Step Indicator ─────────────────────────────────────────────── */
 function StepIndicator({ current, total }: { current: number; total: number }) {

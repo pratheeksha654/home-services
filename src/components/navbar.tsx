@@ -4,14 +4,14 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
-import { useNotifications } from "@/context/NotificationContext";
+import { useAuth, getRoleBasedRoute } from "@/context/auth-context";
+import { useNotifications } from "@/context/notification-context";
 import { Phone } from "lucide-react";
 
-import { NavLink } from "./navbar/NavLink";
-import { ProfileDropdown } from "./navbar/ProfileDropdown";
-import { MobileMenu } from "./navbar/MobileMenu";
-import { getNavLinksForRole, isNavItemActive } from "@/lib/navConfig";
+import { NavLink } from "./navbar/nav-link";
+import { ProfileDropdown } from "./navbar/profile-dropdown";
+import { MobileMenu } from "./navbar/mobile-menu";
+import { getNavLinksForRole, isNavItemActive } from "@/lib/nav-config";
 
 function getProfileRoute(role?: string | null): string {
   const normalizedRole = role ? role.toUpperCase().trim() : "CUSTOMER";

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth-context";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { sortTechnicianJobs, type TechnicianJob } from "@/lib/technicianJobs";
+import { sortTechnicianJobs, type TechnicianJob } from "@/lib/technician-jobs";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 

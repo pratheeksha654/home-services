@@ -9,7 +9,7 @@ import {
   Heart,
 } from "lucide-react";
 
-import QuickActionCard from "./QuickActionCard";
+import QuickActionCard from "./quick-action-card";
 
 const actions = [
   {

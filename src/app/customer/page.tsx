@@ -1,8 +1,8 @@
-import Hero from "./Hero";
-import QuickActions from "./QuickActions";
-import PopularServices from "./ServicesSection";
-import Footer from "@/components/Footer";
-import ElderlySupportBanner from "@/components/ElderlySupportBanner";
+import Hero from "./hero";
+import QuickActions from "./quick-actions";
+import PopularServices from "./services-section";
+import Footer from "@/components/footer";
+import ElderlySupportBanner from "@/components/elderly-support-banner";
 
 export default function CustomerHome() {
   return (

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
-import AuthGuard from "@/components/auth/AuthGuard";
+import { useAuth, getRoleBasedRoute } from "@/context/auth-context";
+import AuthGuard from "@/components/auth/auth-guard";
 import {
   Search,
   UserPlus,

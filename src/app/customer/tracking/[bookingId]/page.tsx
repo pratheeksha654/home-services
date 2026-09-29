@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Clock, CheckCircle2, Navigation, MapPin, Truck, Wrench, PartyPopper, Sparkles, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const TrackingMap = dynamic(() => import('@/components/TrackingMap'), { 
+const TrackingMap = dynamic(() => import('@/components/tracking-map'), { 
   ssr: false,
   loading: () => (
     <div className="w-full h-full bg-[#14161E] flex items-center justify-center text-[#9CA0AE] rounded-2xl">

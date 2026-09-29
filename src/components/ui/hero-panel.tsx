@@ -1,5 +1,5 @@
 import Image from "next/image";
-import BrandLogo from "./BrandLogo";
+import BrandLogo from "./brand-logo";
 
 export default function HeroPanel() {
   return (

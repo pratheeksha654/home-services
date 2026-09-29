@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
-import GlassButton from "@/components/ui/GlassButton";
+import { useAuth } from "@/context/auth-context";
+import GlassButton from "@/components/ui/glass-button";
 import { AlertCircle, Sparkles } from "lucide-react";
 
 export default function TechnicianRejectedPage() {

@@ -2,9 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
-import { RoleBadge } from "./RoleBadge";
-import { NavLink } from "./NavLink";
-import { getNavLinksForRole, isNavItemActive } from "@/lib/navConfig";
+import { RoleBadge } from "./role-badge";
+import { NavLink } from "./nav-link";
+import { getNavLinksForRole, isNavItemActive } from "@/lib/nav-config";
 
 interface MobileMenuProps {
     isLoggedIn: boolean;

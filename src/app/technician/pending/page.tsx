@@ -4,9 +4,9 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth-context";
 import { Sparkles, CheckCircle2, Clock } from "lucide-react";
-import GlassButton from "@/components/ui/GlassButton";
+import GlassButton from "@/components/ui/glass-button";
 
 export default function TechnicianPendingPage() {
   const { user, getToken, fetchProfile } = useAuth();

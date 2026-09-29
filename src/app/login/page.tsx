@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import LoginForm from "@/components/auth/LoginForm";
-import BrandLogo from "@/components/ui/BrandLogo";
+import LoginForm from "@/components/auth/login-form";
+import BrandLogo from "@/components/ui/brand-logo";
 
 export const metadata: Metadata = {
   title: "Log In - FixNest | Book Trusted Home Services",

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth-context";
 import {
   Wallet,
   Briefcase,
@@ -15,7 +15,7 @@ import {
   ArrowRight,
   AlertTriangle,
 } from "lucide-react";
-import GlassButton from "@/components/ui/GlassButton";
+import GlassButton from "@/components/ui/glass-button";
 import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";

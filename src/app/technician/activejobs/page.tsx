@@ -3,9 +3,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth-context";
 import { AlertCircle, CheckCircle2, Clock, MapPin, Navigation, Phone, Play, RefreshCw, Wrench } from "lucide-react";
-import GlassButton from "@/components/ui/GlassButton";
+import GlassButton from "@/components/ui/glass-button";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "./success-modal";
 import {
   Wrench,
   FileText,
@@ -10,7 +10,7 @@ import {
   Send,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth-context";
 
 export default function EmergencyForm() {
   const { user } = useAuth();

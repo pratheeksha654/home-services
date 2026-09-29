@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import StatsCard from "./StatsCard";
+import StatsCard from "./stats-card";
 import { motion } from "framer-motion";
 import {
   CalendarDays,
@@ -12,7 +12,7 @@ import {
   ClipboardList,
   Heart,
 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth-context";
 
 interface SummaryData {
   totalBookings: number;

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, getRoleBasedRoute } from "@/context/AuthContext";
+import { useAuth, getRoleBasedRoute } from "@/context/auth-context";
 
 /* ── Step Indicator ─────────────────────────────────────────────── */
 function StepIndicator({ current, total }: { current: number; total: number }) {

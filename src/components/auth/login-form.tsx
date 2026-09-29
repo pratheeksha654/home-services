@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
-import BrandLogo from "@/components/ui/BrandLogo";
-import { GoogleIcon } from "@/components/icons/Icons";
+import { useAuth } from "@/context/auth-context";
+import BrandLogo from "@/components/ui/brand-logo";
+import { GoogleIcon } from "@/components/icons/icons";
 import { ShieldCheck } from "lucide-react";
 
 export default function LoginForm() {

@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { useNotifications, Notification } from "@/context/NotificationContext";
-import { useAuth } from "@/context/AuthContext";
+import { useNotifications, Notification } from "@/context/notification-context";
+import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import { 
   Bell, 

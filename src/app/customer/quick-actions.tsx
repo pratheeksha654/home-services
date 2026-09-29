@@ -7,7 +7,7 @@ import {
   History,
 } from "lucide-react";
 
-import ActionCard from "@/components/cards/ActionCard";
+import ActionCard from "@/components/cards/action-card";
 
 
 export default function QuickActions() {

@@ -1,5 +1,5 @@
-export { default as GlassInput } from "./GlassInput";
-export { default as GlassButton } from "./GlassButton";
-export { default as Divider } from "./Divider";
-export { default as BrandLogo } from "./BrandLogo";
-export { default as HeroPanel } from "./HeroPanel";
+export { default as GlassInput } from "./glass-input";
+export { default as GlassButton } from "./glass-button";
+export { default as Divider } from "./divider";
+export { default as BrandLogo } from "./brand-logo";
+export { default as HeroPanel } from "./hero-panel";

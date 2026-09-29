@@ -1,6 +1,6 @@
 import type { EmergencyRequest, Technician } from "@/app/types/coordinator";
-import EmergencyRequestCard from "./EmergencyRequestCard";
-import EmptyState from "./EmptyState";
+import EmergencyRequestCard from "./emergency-request-card";
+import EmptyState from "./empty-state";
 
 interface Props {
   requests: EmergencyRequest[];

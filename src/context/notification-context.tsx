@@ -1,8 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { useAuth } from "./AuthContext";
-import EmergencyModal from "@/components/EmergencyModal";
+import { useAuth } from "./auth-context";
+import EmergencyModal from "@/components/emergency-modal";
 
 export interface Notification {
   id: string;

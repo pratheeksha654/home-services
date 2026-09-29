@@ -1,16 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Footer from "@/components/Footer";
-import EmergencyHeader from "@/components/coordinator/emergencyRequests/EmergencyHeader";
-import SearchFilterBar from "@/components/coordinator/emergencyRequests/SearchFilterBar";
-import EmergencyRequestList from "@/components/coordinator/emergencyRequests/EmergencyRequestList";
+import Footer from "@/components/footer";
+import EmergencyHeader from "@/components/coordinator/emergency-requests/emergency-header";
+import SearchFilterBar from "@/components/coordinator/emergency-requests/search-filter-bar";
+import EmergencyRequestList from "@/components/coordinator/emergency-requests/emergency-request-list";
 import type {
   EmergencyRequest,
   FilterState,
   Technician,
 } from "@/app/types/coordinator";
-import { mapEmergencyRequests, mapTechnicians } from "@/lib/emergencyData";
+import { mapEmergencyRequests, mapTechnicians } from "@/lib/emergency-data";
 
 // ── Default filter state ──────────────────────────────────────────────────────
 

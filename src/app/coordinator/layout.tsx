@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import AuthGuard from "@/components/auth/AuthGuard";
+import { useAuth } from "@/context/auth-context";
+import AuthGuard from "@/components/auth/auth-guard";
 
 export default function CoordinatorLayout({ children }: { children: React.ReactNode }) {
   return (

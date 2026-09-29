@@ -11,8 +11,8 @@ import {
   Users,
 } from "lucide-react";
 import type { EmergencyRequest, Technician } from "@/app/types/coordinator";
-import { StatusBadge, PriorityBadge } from "./StatusBadge";
-import TechnicianAvailability from "./TechnicianAvailability";
+import { StatusBadge, PriorityBadge } from "./status-badge";
+import TechnicianAvailability from "./technician-availability";
 
 interface Props {
   request: EmergencyRequest;

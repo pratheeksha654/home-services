@@ -1,9 +1,9 @@
-import DashboardHero from "./DashboardHero";
-import SummaryCards from "./SummaryCards";
-import TechnicianOverview from "./TechnicianOverview";
-import QuickActions from "./QuickActions";
-import ElderlyBookingsCard from "./ElderlyBookingsCard";
-import Footer from "@/components/Footer";
+import DashboardHero from "./dashboard-hero";
+import SummaryCards from "./summary-cards";
+import TechnicianOverview from "./technician-overview";
+import QuickActions from "./quick-actions";
+import ElderlyBookingsCard from "./elderly-bookings-card";
+import Footer from "@/components/footer";
 
 export default function DashboardPage() {
   return (

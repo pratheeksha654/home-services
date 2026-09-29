@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import TermsContent from "@/components/terms/TermsContent";
-import Footer from "@/components/Footer";
+import TermsContent from "@/components/terms/terms-content";
+import Footer from "@/components/footer";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions - HomeFixPro | Trusted Home Services",
