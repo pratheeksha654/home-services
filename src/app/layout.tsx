@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
-import Providers from "@/components/Providers";
+import Providers from "@/components/providers";
 import "./globals.css";
+import NavbarWrapper from "@/components/navbar-wrapper";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,11 +31,15 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${outfit.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <Providers>{children}</Providers>
+        <Providers>
+          <NavbarWrapper />
+          <main className="flex-1">{children}</main>
+        </Providers>
       </body>
     </html>
   );
 }
-

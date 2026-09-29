@@ -1,4 +1,4 @@
-# 🏠 Home Services Platform
+# 🏠 FixNest - Home Services Platform
 
 A full-stack home services management platform that connects **customers** with **technicians** for on-demand repair, maintenance, and emergency services. Built with a role-based architecture supporting four user types — Customers, Technicians, Coordinators, and Admins.
 
@@ -7,24 +7,37 @@ A full-stack home services management platform that connects **customers** with 
 ## 📋 Table of Contents
 
 - [Overview](#overview)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [API Endpoints](#api-endpoints)
-- [User Roles & Features](#user-roles--features)
-- [Database Schema](#database-schema)
-- [Scripts](#scripts)
+- [Key Features](#-key-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+- [Environment Variables](#-environment-variables)
+- [API Endpoints](#-api-endpoints)
+- [User Roles & Features](#-user-roles--features)
+- [Database Schema](#-database-schema)
+- [Scripts](#-scripts)
 
 ---
 
 ## Overview
 
-Home Services Platform streamlines the process of booking, assigning, and tracking home service jobs. Customers can browse services, place bookings (including emergency requests), and track technician arrivals in real-time on a map. Coordinators manage the operations pipeline — reviewing bookings, assigning technicians, and monitoring dashboards. Admins oversee the entire system including user management and coordinator onboarding.
+FixNest streamlines the process of booking, assigning, and tracking home service jobs. Customers can browse services, place bookings (including emergency requests), and track technician arrivals in real-time on an interactive map. Coordinators manage the operations pipeline — reviewing bookings, assigning technicians, and monitoring dashboards. Admins oversee the entire system including user management and coordinator onboarding.
 
 ---
 
-## Tech Stack
+## 🚀 Key Features
+
+* **Role-Based Workflows**: Tailored user experiences for **Customers**, **Technicians**, **Coordinators**, and **Admins**.
+* **Customer Hub**: Dynamic category browsing, seamless booking management, standard and emergency request creation, and profile personalization.
+* **Technician Onboarding**: Multi-step application system containing professional information forms, qualification reviews, and experience setup.
+* **Technician Workspace**: Schedule management, active job viewing, and progress reporting.
+* **Coordinator Dashboard**: Full administration panel to manage incoming standard and emergency bookings, review & process technician applications, and manually or automatically assign jobs.
+* **Real-time Tracking**: Live Leaflet Maps tracking layout showing GPS updates, estimated time of arrival (ETA), and progress updates.
+* **Premium UI/UX Design**: Stunning visuals utilizing dark modes, subtle micro-animations, custom icons, and fully responsive layouts.
+
+---
+
+## 🛠️ Tech Stack
 
 ### Frontend
 | Technology | Purpose |
@@ -49,7 +62,7 @@ Home Services Platform streamlines the process of booking, assigning, and tracki
 
 ---
 
-## Project Structure
+## 📂 Project Structure
 
 ```
 Home-service/
@@ -74,11 +87,11 @@ Home-service/
 │   │   │   ├── ui/            # Base UI components
 │   │   │   ├── auth/          # Auth guard components
 │   │   │   ├── navbar/        # Navigation components
-│   │   │   ├── Navbar.tsx     # Main navigation bar
-│   │   │   ├── Footer.tsx     # Footer
-│   │   │   └── TrackingMap.tsx # Real-time map tracking
+│   │   │   ├── navbar.tsx     # Main navigation bar
+│   │   │   ├── footer.tsx     # Footer
+│   │   │   └── tracking-map.tsx # Real-time map tracking
 │   │   ├── context/           # React context providers
-│   │   │   └── AuthContext.tsx # Authentication state management
+│   │   │   └── auth-context.tsx # Authentication state management
 │   │   ├── lib/               # Utility libraries (Supabase client, etc.)
 │   │   ├── types/             # TypeScript type definitions
 │   │   └── data/              # Static data & constants
@@ -87,16 +100,6 @@ Home-service/
 ├── backend/                   # Express.js API server
 │   ├── src/
 │   │   ├── controllers/       # Route handlers / business logic
-│   │   │   ├── auth.controller.js
-│   │   │   ├── booking.controller.js
-│   │   │   ├── coordinator.controller.js
-│   │   │   ├── technician.controller.js
-│   │   │   ├── tracking.controller.js
-│   │   │   ├── emergency.controller.js
-│   │   │   ├── admin.controller.js
-│   │   │   ├── service.controller.js
-│   │   │   ├── user.controller.js
-│   │   │   └── notification.controller.js
 │   │   ├── routes/            # Express route definitions
 │   │   ├── middleware/        # Auth & admin middleware
 │   │   ├── services/          # Business service layer
@@ -115,7 +118,7 @@ Home-service/
 
 ---
 
-## Getting Started
+## 🚦 Getting Started
 
 ### Prerequisites
 
@@ -126,7 +129,7 @@ Home-service/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/pratheeksha654/home-services-backend.git
+git clone https://github.com/pratheeksha654/home-services.git
 cd Home-service
 ```
 
@@ -137,7 +140,7 @@ cd backend
 npm install
 ```
 
-Create a `.env` file in `backend/` (see [Environment Variables](#environment-variables)).
+Create a `.env` file in `backend/` (see [Environment Variables](#-environment-variables)).
 
 Run database migrations:
 
@@ -161,7 +164,7 @@ cd frontend
 npm install
 ```
 
-Create a `.env.local` file in `frontend/` (see [Environment Variables](#environment-variables)).
+Create a `.env.local` file in `frontend/` (see [Environment Variables](#-environment-variables)).
 
 Start the development server:
 
@@ -173,7 +176,7 @@ The app will be available at `http://localhost:3000`.
 
 ---
 
-## Environment Variables
+## ⚙️ Environment Variables
 
 ### Backend (`backend/.env`)
 
@@ -194,7 +197,7 @@ The app will be available at `http://localhost:3000`.
 
 ---
 
-## API Endpoints
+## 🌐 API Endpoints
 
 All endpoints are prefixed with `/api/v1`.
 
@@ -214,7 +217,7 @@ All endpoints are prefixed with `/api/v1`.
 
 ---
 
-## User Roles & Features
+## 👥 User Roles & Features
 
 ### 🙋 Customer
 - Browse available home services
@@ -245,7 +248,7 @@ All endpoints are prefixed with `/api/v1`.
 
 ---
 
-## Database Schema
+## 🗄️ Database Schema
 
 The database is modelled with **Prisma ORM** and hosted on **Supabase (PostgreSQL)**. Key models:
 
@@ -260,7 +263,7 @@ The database is modelled with **Prisma ORM** and hosted on **Supabase (PostgreSQ
 
 ---
 
-## Scripts
+## 📜 Scripts
 
 ### Backend
 
@@ -279,6 +282,3 @@ The database is modelled with **Prisma ORM** and hosted on **Supabase (PostgreSQ
 | `npm run build` | Create production build |
 | `npm start` | Start production server |
 | `npm run lint` | Run ESLint |
-
----
-
